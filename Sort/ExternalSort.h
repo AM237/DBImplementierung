@@ -1,0 +1,18 @@
+
+///////////////////////////////////////////////////////////////////////////////
+// SumOfFactors.h
+//////////////////////////////////////////////////////////////////////////////
+
+
+#ifndef EXTERNALSORT_H
+#define EXTERNALSORT_H
+
+#include <stdint.h>
+
+using namespace std;
+
+void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
+
+
+#endif  // EXTERNALSORT_H
+
