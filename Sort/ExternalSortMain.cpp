@@ -20,6 +20,7 @@ void printUsage()
 	cout << endl;
 	cout << "Run with --readableRuns to write each run file in readable "
 	     << "(txt) format" << endl;
+	cout << "Run with --verbose to get more feedback " << endl;
 
 	cout << endl << " ***************************************** " << endl;
 	exit(1);
