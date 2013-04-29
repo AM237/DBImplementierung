@@ -17,7 +17,21 @@
 #include <fstream>
 #include <time.h>
 
-#include "ExternalSortParams.h"
+
+// Constants
+namespace
+{
+    // Path to where directory containing the runs should be stored
+	 const std::string runDirPath = "./";
+	
+	// Name of runs directory
+	 const std::string runDirName = "runs";
+	
+	// Runs naming scheme
+	 const std::string runName = "runNr";
+}
+
+
 
 using namespace std;
 

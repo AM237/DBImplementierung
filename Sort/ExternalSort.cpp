@@ -22,29 +22,29 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 {	
 	// Partition file into sorted runs, store them to disk.
 	time_t start, end;
-	cout << endl << "Partitioning into sorted runs ... " ;
+	cout << endl << "Partitioning into sorted runs ... " << flush;
     time(&start);
 	int runs = makeSortedRuns(fdInput, size, memSize, readableRuns, verbose);
 	time(&end);
 	cout << "Finished partitioning (" << runs << " runs)."
 	     << " Time required: " 
-	     << difftime(end, start) << " sec" << endl;
+	     << difftime(end, start) << " sec" << endl << flush;
 	if (verbose) cout << endl;
 
 	// Merge the individual partitions, write result to
 	// file with descriptor fdOutput (in binary format)
-	cout << "Merging sorted runs ... " ;
+	cout << "Merging sorted runs ... " << flush;
 	time(&start);
 	// ....
 	time(&end);
 	cout << "Finished merging. Time required: " 
-	     << difftime(end, start) << " sec" << endl;
+	     << difftime(end, start) << " sec" << endl << flush;
 	     
 	// Clean up
 	if (!nocleanup)
 	{
 		cout << "Cleaning up ... ";
-		if (system("rm -r runs") < 0) 
+		if (system(("rm -r " + runDirPath + runDirName).c_str()) < 0) 
 			cout << "Error deleting runs folder" << endl;
 		cout << "done. " << endl << endl;
 	}
@@ -74,7 +74,8 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	int numElements = bufferSize / sizeof(uint64_t);
   
   	// Make directory to store sorted runs
-  	if (system("mkdir runs") < 0) cout << "Error creating runs folder" << endl;
+  	if (system(("mkdir " + runDirPath + runDirName).c_str()) < 0) 
+  		cout << "Error creating runs folder" << endl;
   		
   	// Read the input file blockwise into main memory
   	int readState = 0;
@@ -85,25 +86,10 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	{
   		if (verbose)
   		cout << endl << "Processing run number " << runIndex << endl;
-  		
-  		// Allocate buffer (make as large as possible to minimize
+  	  		  	
+  	  	// Allocate buffer (make as large as possible to minimize
   		// the number of reads required)
 		uint64_t* buffer = new uint64_t[numElements];
-	
-  		
-  		/*vector<uint64_t> buffer;
-	  	buffer->reserve(numElements);
-	  	
-  		int vecSize = 0;
-  		while(vecSize < bufferSize)
-  		{
-  			uint64_t miniBuf;
-			readState =  read(fileno(pFile), (uint64_t*)&miniBuf, 
-			                  sizeof(uint64_t));
-			buffer.push_back(miniBuf);
-			vecSize += sizeof(uint64_t);  		
-  		}*/
-  	
 
 		readState =  read(fdInput, buffer, bufferSize);  		
   		
@@ -136,7 +122,8 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   		sort(buf.begin(), buf.end());
   			
   		// Write run to disk
-  		const char* filename = ("./runs/runNr"+to_string(runIndex)).c_str();
+  		const char* filename = 
+  			(runDirPath+runDirName+"/"+runName+to_string(runIndex)).c_str();
   		
   		if (readableRuns)
   		{
