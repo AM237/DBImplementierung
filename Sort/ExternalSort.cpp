@@ -6,6 +6,15 @@
 
 #include "ExternalSort.h"
 
+
+struct OrderBySize
+{
+    bool operator() ( uint64_t const a, uint64_t const b) { return a > b; }
+}; 
+typedef std::priority_queue<uint64_t, std::vector<uint64_t>, OrderBySize> prioritysize_queue;
+
+
+
 // ____________________________________________________________________________
 void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput, 
 				  uint64_t memSize)
@@ -35,7 +44,11 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 	// file with descriptor fdOutput (in binary format)
 	cout << "Merging sorted runs ... " << flush;
 	time(&start);
-	// ....
+
+
+	mergeSortedRuns(memSize, fdOutput, runs);
+
+
 	time(&end);
 	cout << "Finished merging. Time required: " 
 	     << difftime(end, start) << " sec" << endl << flush;
@@ -181,5 +194,146 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	
   	if (verbose) cout << endl;
   	return runIndex-1;
-}                 
+} 
+
+
+
+// ____________________________________________________________________________
+void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
+{	
+
+        // File descriptorss
+	FILE* pFileRun[runs];
+	FILE* oFile;
+
+        // Priority queue
+        prioritysize_queue pq; 
+
+        // Size of the loaded run and the sorted area
+        uint64_t runMemSize = memSize/(runs+1);
+
+        // mod 8
+        runMemSize = (runMemSize/8)*8;
+
+        // length og sorted list
+	int sortedLength = 0;
+
+        // Number of finished runs
+        int countFinished = 0;
+
+        // left memory size - -1 if run is empty
+        uint64_t leftRunMemSize[runs]; 
+	for( int runIndex = 0; runIndex < runs+1; runIndex++){
+        	leftRunMemSize[runIndex] = 0;
+	}
+       // initial memory size - -1 if run is empty
+        uint64_t initialRunMemSize[runs]; 
+	for( int runIndex = 0; runIndex < runs+1; runIndex++){
+        	initialRunMemSize[runIndex] = 0;
+	}
+
+
+        // Read the input file blockwise into main memory
+  	int readState = 0;
+
+        // Not enough Memory to do a reasonable Merge
+        if (runMemSize < 1) cerr << "Not enough Memory" << endl;
+
+
+        //Buffer anlegen
+        uint64_t* buffer = new uint64_t[memSize];
+        uint64_t* actBuffer = buffer;
+
+
+        // Open files
+	for( int runIndex = 1; runIndex < runs+1; runIndex++){
+                const char* filename = 
+  			(runDirPath+runDirName+"/"+runName+to_string(runIndex)).c_str();
+		pFileRun[runIndex] = fopen (filename,"rb");
+                if (pFileRun[runIndex] ==NULL) cerr << "Unable to open temporary file" << endl;
+
+	}
+
+
+        // main loop to merge runs
+        do{
+                // Read blocks of data
+		for( int runIndex = 1; runIndex < runs+1; runIndex++){
+			if(leftRunMemSize[runIndex]!=-1){
+
+            			if(leftRunMemSize[runIndex]==0){
+
+               				readState =  read(fileno(pFileRun[runIndex]), buffer+runIndex*runMemSize,runMemSize); 
+               				if (readState > 0) {
+  						leftRunMemSize[runIndex]=readState;
+						initialRunMemSize[runIndex] = readState;
+                                          // push first element of run on priority queue
+                			  pq.push(buffer[runIndex*runMemSize]);
+  					} else if (readState == 0){ 
+						leftRunMemSize[runIndex]=-1;
+						countFinished++;
+
+					}                                    
+             			}      
+            		}
+        	}
+
+               if(countFinished == runs){
+                  // write remaining sorted elements
+                  write(fdOutput, &(buffer[0]), sortedLength);
+               } else
+               {
+
+               		// Get and remove top element
+               		uint64_t topElement = pq.top();
+
+                        // write sorted elements in main memory
+			buffer[sortedLength] = topElement;
+                        sortedLength++;
+			if(sortedLength=runMemSize){
+				write(fdOutput, &(buffer[0]), runMemSize);
+				sortedLength = 0;
+			}
+
+	       		pq.pop();
+
+               		// Remove
+	    		for( int runIndex = 1; runIndex < runs+1; runIndex++){
+
+            			if(leftRunMemSize[runIndex]!=-1){
+					//top Element is in this run
+
+					//cout << buffer[runIndex*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]<< endl;
+
+					if(topElement==buffer[runIndex*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])/sizeof(uint64_t)]){
+               					leftRunMemSize[runIndex]=leftRunMemSize[runIndex]-sizeof(uint64_t);
+						if(leftRunMemSize[runIndex] > 0)
+  							pq.push(buffer[runIndex*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])/sizeof(uint64_t)]);
+						break;
+					}
+				}
+        		}
+
+		}
+
+
+
+	}while( countFinished < runs);
+
+       delete[] buffer;
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+                
 

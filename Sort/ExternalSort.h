@@ -16,6 +16,7 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
+#include <queue>
 
 
 // Constants
@@ -61,7 +62,11 @@ private:
 	// The buffer size (MB) is dictated by memSize, verbose controls amount 
 	// of feedback. Returns number of created runs.  
 	int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
-                    bool readableRuns, bool verbose);            
+                    bool readableRuns, bool verbose);        
+
+        // Helper function to merge the runs, parameters are the memSize to use, the 
+	// output file descriptor and the number of runs
+	void mergeSortedRuns(uint64_t memSize, int fdOutput, int runs);     
 
 };
 
