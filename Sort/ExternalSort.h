@@ -41,7 +41,7 @@ class ExternalSort
 public: 
 	// Reads file with descriptor fdInput and performs an external sort of the 
 	// uing64_t integers contained therein, writing the output to file with 
-	// descriptor fdOutput. Buffer size is given by memSize. size gives the
+	// descriptor fdOutput. Buffer size (b) is given by memSize. size gives the
 	// number of integer values to consider. size = -1 sorts all values in the
 	// input file.
 	void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
@@ -58,8 +58,8 @@ private:
 	// Helper function for externalSort, takes an input file descriptor and 
 	// produces sorted partitions (runs) of the uint64_t data held in the file.
 	// size > 0 gives the number of integer values to consider
-	// The buffer size is dictated by memSize, verbose controls amount of feedback
-	// Returns number of created runs.  
+	// The buffer size (MB) is dictated by memSize, verbose controls amount 
+	// of feedback. Returns number of created runs.  
 	int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
                     bool readableRuns, bool verbose);            
 

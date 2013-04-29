@@ -24,7 +24,7 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 	time_t start, end;
 	cout << endl << "Partitioning into sorted runs ... " << flush;
     time(&start);
-	int runs = makeSortedRuns(fdInput, size, memSize, readableRuns, verbose);
+	int runs = makeSortedRuns(fdInput, size, memSize/(1024*1024), readableRuns, verbose);
 	time(&end);
 	cout << "Finished partitioning (" << runs << " runs)."
 	     << " Time required: " 

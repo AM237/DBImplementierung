@@ -83,8 +83,9 @@ int main(int argc, char** argv)
   	
   	// Call sorting algorithm
   	ExternalSort sort;
-  	sort.externalSort(fileno(pFile), -1, fileno(oFile), atoi(memBuffer), 
-  	             readableRuns, verbose, nocleanup);
+  	sort.externalSort(fileno(pFile), -1, fileno(oFile),
+  					  atoi(memBuffer)*1024*1024, 
+  	                  readableRuns, verbose, nocleanup);
   	
   	fclose(pFile);
   	fclose(oFile);
