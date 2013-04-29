@@ -6,8 +6,9 @@ OBJECTS = $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard 
 MAIN_LIBS = #-fopenmp
 TEST_LIBS = -lgtest -lpthread
 DEBUG = -ggdb
+RELEASE = sort
 
-all: clean compile test
+all: clean compile test release
 
 compile: $(MAIN_BINARIES) $(TEST_BINARIES)
 
@@ -21,6 +22,12 @@ clean:
 	rm -f $(TEST_BINARIES)
 	rm -f *.class
 	rm -f core
+	
+release: clean compile
+	mv $(MAIN_BINARIES) ./bin
+	mv $(TEST_BINARIES) ./bin
+	mv ./bin/$(MAIN_BINARIES) ./bin/$(RELEASE)
+	mv ./bin/$(TEST_BINARIES) ./bin/$(RELEASE)_test
 
 # Dependent library files, if defined, may be needed AFTER the definition
 # of the object files, and not BEFORE ...
