@@ -21,6 +21,7 @@ void printUsage()
 	cout << "Run with --readableRuns to write each run file in readable "
 	     << "(txt) format" << endl;
 	cout << "Run with --verbose to get more feedback " << endl;
+	cout << "Run with --nocleanup to save the runs on disk " << endl;
 
 	cout << endl << " ***************************************** " << endl;
 	exit(1);
@@ -82,7 +83,7 @@ int main(int argc, char** argv)
   	
   	// Call sorting algorithm
   	ExternalSort sort;
-  	sort.externalSort(fileno(pFile), 64, fileno(oFile), atoi(memBuffer), 
+  	sort.externalSort(fileno(pFile), -1, fileno(oFile), atoi(memBuffer), 
   	             readableRuns, verbose, nocleanup);
   	
   	fclose(pFile);

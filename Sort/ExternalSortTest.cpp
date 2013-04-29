@@ -32,7 +32,7 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
   	int numElements = bufferSize / sizeof(uint64_t);
 	
 	ExternalSort sort;
-	sort.externalSort(fileno(testFile), 64, fileno(testOutputFile), 1);
+	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), 1);
  	 	
  	// Read output file and verify order (blockwise)
   	int readState = 0;

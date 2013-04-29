@@ -80,6 +80,8 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	// Read the input file blockwise into main memory
   	int readState = 0;
   	int runIndex = 1;
+  	uint64_t processedElements = 0;
+  	bool sizeReached = false;
   	
   	if (verbose) cout << endl;
   	do
@@ -116,7 +118,21 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   		// Sort the in memory block (run)
   		vector<uint64_t> buf;
   		for (int i = 0; i < limit; i++)
+  		{
   			buf.push_back(buffer[i]);
+  			
+  			if (size > 0)
+  			{
+  				processedElements++;
+  			
+  				// Quit if enough elements have been processed
+  				if (processedElements >= size)
+  				{
+  					sizeReached = true;
+  					break;
+  				}
+  			}
+  		}
 
   		delete[] buffer;  			
   		sort(buf.begin(), buf.end());
@@ -161,10 +177,9 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
 			cout << "Finished processing run number " << runIndex << endl;  		
 		runIndex++;
   	
-  	} while (readState != 0);
+  	} while (readState != 0 && !sizeReached);
   	
   	if (verbose) cout << endl;
   	return runIndex-1;
 }                 
-
 
