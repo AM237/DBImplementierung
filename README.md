@@ -3,13 +3,25 @@ DBImplementierung
 
 Code Repository for the "Databases Implementation on Modern CPU Architectures" Lecture, SS 2013, TUM
 
-Project properties:
+
+Project: Sort
+
+1. 'make release' compiles source code and places executables (main and test) in Sort/bin.
+
+2. test case ('make test') creates sample 4MB input file and corresponding output, both of which are deleted once the test is finished. Similarly, we tested locally with a 5 GB input file and obtained similar results.
+
+3. execute with no arguments for an overview of the available command line options (used for debugging, etc.).
+
+
+
+Project tools and dependencies:
 
 1. Testing framework: Google Test 1.6.0 - Assumes header and library files have been installed to /usr/include and /usr/lib, respectively.
 
 2. Build framework - CMake (see Makefile for available make targets)
 
 3. Compiler - g++ with added support for C++11.
+
 
 
 Sandbox project links:

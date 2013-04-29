@@ -15,7 +15,7 @@ void printUsage()
 {
 	cout << endl << " **************** Usage: *****************" << endl;
 	
-	cout << endl << "./ExternalSortMain <inputFile> <outputFile> "
+	cout << endl << "./<executable name> <inputFile> <outputFile> "
 	     << "<memoryBufferInMB> ";
 	cout << endl;
 	cout << "Run with --readableRuns to write each run file in readable "
