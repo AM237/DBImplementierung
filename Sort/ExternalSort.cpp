@@ -7,17 +7,18 @@
 #include "ExternalSort.h"
 
 // ____________________________________________________________________________
-void externalSort(int fdInput, uint64_t size, int fdOutput, 
+void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput, 
 				  uint64_t memSize)
 {
-	externalSort(fdInput, size, fdOutput, memSize, false, false);
+	externalSort(fdInput, size, fdOutput, memSize, false, false, false);
 }
 
 
 
 // ____________________________________________________________________________
-void externalSort(int fdInput, uint64_t size, int fdOutput, 
-                  uint64_t memSize, bool readableRuns, bool verbose)
+void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput, 
+                  uint64_t memSize, bool readableRuns, bool verbose,
+                  bool nocleanup)
 {	
 	// Partition file into sorted runs, store them to disk.
 	time_t start, end;
@@ -38,11 +39,20 @@ void externalSort(int fdInput, uint64_t size, int fdOutput,
 	time(&end);
 	cout << "Finished merging. Time required: " 
 	     << difftime(end, start) << " sec" << endl;
-  	
+	     
+	// Clean up
+	if (!nocleanup)
+	{
+		cout << "Cleaning up ... ";
+		if (system("rm -r runs") < 0) 
+			cout << "Error deleting runs folder" << endl;
+		cout << "done. " << endl << endl;
+	}
+	
 }
 
 // ____________________________________________________________________________
-int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
+int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
                     bool readableRuns, bool verbose)
 {
 	// For simplicity, buffer size is limited to 4 GB.
@@ -56,11 +66,15 @@ int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	// Compute memory requirements, as well as the max number of
   	// containable elements in the buffer
   	int bufferSize = requestedSize * 1024 * 1024;
+  	if (bufferSize % sizeof(uint64_t) != 0)
+  		{
+  			cerr << "Cannot evenly fit data into buffer " << endl;	
+  			exit(1);
+  		}
   	int numElements = bufferSize / sizeof(uint64_t);
   
   	// Make directory to store sorted runs
-  	const string dir = "runs";
-  	system(("mkdir " + dir).c_str());
+  	if (system("mkdir runs") < 0) cout << "Error creating runs folder" << endl;
   		
   	// Read the input file blockwise into main memory
   	int readState = 0;
@@ -122,7 +136,7 @@ int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   		sort(buf.begin(), buf.end());
   			
   		// Write run to disk
-  		const char* filename = ("./"+dir+"/runNr"+to_string(runIndex)).c_str();
+  		const char* filename = ("./runs/runNr"+to_string(runIndex)).c_str();
   		
   		if (readableRuns)
   		{

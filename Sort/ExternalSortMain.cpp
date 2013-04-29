@@ -31,6 +31,7 @@ struct option options[] =
 {
 	{"readableRuns",	0, NULL, 'r'},
 	{"verbose",			0, NULL, 'v'},
+	{"nocleanup",		0, NULL, 'n'},
 	{NULL, 				0, NULL,  0 }
 };
 
@@ -44,12 +45,13 @@ int main(int argc, char** argv)
 	const char* memBuffer = NULL;
 	bool readableRuns = false;
 	bool verbose = false;
+	bool nocleanup = false;
 	
 	// Parse options
 	optind = 1;
 	while(true)
 	{
-		int c = getopt_long(argc, argv, "rv", options, NULL);
+		int c = getopt_long(argc, argv, "rvn", options, NULL);
 		if (c == -1) break;
 		switch (c)
 		{
@@ -57,6 +59,8 @@ int main(int argc, char** argv)
 				readableRuns = true; break;
 			case 'v':
 				verbose = true; break;
+			case 'n':
+				nocleanup = true; break;
 			default: printUsage();
 		}
 	}
@@ -77,8 +81,9 @@ int main(int argc, char** argv)
   	if (oFile==NULL) cerr << "Unable to open the output file" << endl;
   	
   	// Call sorting algorithm
-  	externalSort(fileno(pFile), 64, fileno(oFile), atoi(memBuffer), 
-  	             readableRuns, verbose);
+  	ExternalSort sort;
+  	sort.externalSort(fileno(pFile), 64, fileno(oFile), atoi(memBuffer), 
+  	             readableRuns, verbose, nocleanup);
   	
   	fclose(pFile);
   	fclose(oFile);
