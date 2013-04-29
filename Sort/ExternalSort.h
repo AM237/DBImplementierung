@@ -33,8 +33,9 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize,
                   
 // Helper function for externalSort, takes an input file descriptor and 
 // produces sorted partitions (runs) of the uint64_t data held in the file.
-// The buffer size is dictated by memSize, verbose controls amount of feedback                
-void makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
+// The buffer size is dictated by memSize, verbose controls amount of feedback
+// Returns number of created runs        
+int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
                     bool readableRuns, bool verbose);             
 
 

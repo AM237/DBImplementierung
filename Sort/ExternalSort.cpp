@@ -23,9 +23,10 @@ void externalSort(int fdInput, uint64_t size, int fdOutput,
 	time_t start, end;
 	cout << endl << "Partitioning into sorted runs ... " ;
     time(&start);
-	makeSortedRuns(fdInput, size, memSize, readableRuns, verbose);
+	int runs = makeSortedRuns(fdInput, size, memSize, readableRuns, verbose);
 	time(&end);
-	cout << "Finished partitioning. Time required: " 
+	cout << "Finished partitioning (" << runs << " runs)."
+	     << " Time required: " 
 	     << difftime(end, start) << " sec" << endl;
 	if (verbose) cout << endl;
 
@@ -41,7 +42,7 @@ void externalSort(int fdInput, uint64_t size, int fdOutput,
 }
 
 // ____________________________________________________________________________
-void makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
+int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
                     bool readableRuns, bool verbose)
 {
 	// For simplicity, buffer size is limited to 4 GB.
@@ -162,6 +163,7 @@ void makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   	} while (readState != 0);
   	
   	if (verbose) cout << endl;
+  	return runIndex-1;
 }                 
 
 
