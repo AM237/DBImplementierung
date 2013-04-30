@@ -233,12 +233,10 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
         // Not enough Memory to do a reasonable Merge
         if (runMemSize < 1) cerr << "Not enough Memory" << endl;
 
-
         //Buffer anlegen
         uint64_t* buffer = new uint64_t[memSize/sizeof(uint64_t)];
         uint64_t* actBuffer = buffer;
                                         
-
         // Open files
 	for( int runIndex = 0; runIndex < runs; runIndex++){
                 const char* filename = 
@@ -273,6 +271,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
         	}
 
 
+               // all runs are processed
                if(countFinished == runs){
                   // write remaining sorted elements
                   write(fdOutput, &(buffer[0]), sortedLength*sizeof(uint64_t));
@@ -282,6 +281,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
                		uint64_t topElement = pq.top();
                         pq.pop();
 
+
                         // write sorted elements in main memory
 			buffer[sortedLength] = topElement;
                         sortedLength++;
@@ -290,18 +290,14 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 			if(sortedLength==runMemSize){
                                 cout << "Schreibe die Datei  " << runMemSize << " "  << endl;
 				write(fdOutput, &(buffer[0]), runMemSize*sizeof(uint64_t));
-
 				sortedLength = 0;
 			}
 
-	       		
 
                		// Remove top element from buffer of run 
 	    		for( int runIndex = 0; runIndex < runs; runIndex++){
-
             			if(leftRunMemSize[runIndex]!=-1){
-					//top Element is in this run
-
+					//top element is in this run, move read pointer
 					if(topElement==buffer[(runIndex+1)*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]){
                					leftRunMemSize[runIndex]=leftRunMemSize[runIndex]-1;
 						if(leftRunMemSize[runIndex] > 0)
@@ -310,9 +306,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 					}
 				}
         		}
-
 		}
-
 
 
 	}while( countFinished < runs);
