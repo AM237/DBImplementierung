@@ -33,7 +33,8 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 	time_t start, end;
 	cout << endl << "Partitioning into sorted runs ... " << flush;
     time(&start);
-	int runs = makeSortedRuns(fdInput, size, memSize/(1024*1024), readableRuns, verbose);
+	int runs = makeSortedRuns(fdInput, size, memSize/(1024*1024), 
+				              readableRuns, verbose);
 	time(&end);
 	cout << "Finished partitioning (" << runs << " runs)."
 	     << " Time required: " 
@@ -44,11 +45,7 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 	// file with descriptor fdOutput (in binary format)
 	cout << "Merging sorted runs ... " << flush;
 	time(&start);
-
-
 	mergeSortedRuns(memSize, fdOutput, runs);
-
-
 	time(&end);
 	cout << "Finished merging. Time required: " 
 	     << difftime(end, start) << " sec" << endl << flush;

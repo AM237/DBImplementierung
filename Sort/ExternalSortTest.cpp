@@ -18,13 +18,20 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
  	testFile = fopen ("testFile", "wb");
  	testOutputFile = fopen ("testOutputFile", "wb");
  	
+ 	// 4 MB
  	int n = 500000;
+ 	// 5 GB
+ 	//int n = 640000000;
+ 	
  	for (unsigned i=n; i>0; i--) {
 		uint64_t x = i;
 		if (write(fileno(testFile), &x, sizeof(uint64_t)) < 0) {
 			std::cout << "error writing to testFile" << endl;
 		}
 	}
+	
+	fclose(testFile);
+	testFile = fopen("testFile", "rb");
 
 
 	// Call sorting function	
@@ -32,7 +39,8 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
   	int numElements = bufferSize / sizeof(uint64_t);
 	
 	ExternalSort sort;
-	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), 1);
+	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), bufferSize);
+
  	 	
  	// Read output file and verify order (blockwise)
   	int readState = 0;
