@@ -274,10 +274,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
                {
                		// Get and remove top element
                		uint64_t topElement = pq.top();
-
-
                         pq.pop();
-
 
                         // write sorted elements in main memory
 			buffer[sortedLength] = topElement;
