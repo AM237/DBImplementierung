@@ -40,8 +40,10 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
 	
 	ExternalSort sort;
 	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), bufferSize);
-
- 	 	
+	
+        fclose(testOutputFile);
+        testOutputFile = fopen ("testOutputFile", "r");
+	
  	// Read output file and verify order (blockwise)
   	int readState = 0;
   	do
@@ -52,7 +54,8 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
 	
 		readState =  read(fileno(testOutputFile), buffer, bufferSize);  		
   		
-  		if (readState < 0) cerr << "Error reading file into buffer" << endl;
+
+  		if (readState < 0) cerr << "Error reading file into buffer " << readState << endl;
   		if (readState == 0) 
   		{
   			delete[] buffer;

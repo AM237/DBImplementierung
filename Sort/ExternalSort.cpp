@@ -245,26 +245,24 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 
         // main loop to merge runs
         do{
-
-                // Read blocks of data
+                // Read blocks of data of emtpy runs
 		for( int runIndex = 0; runIndex < runs; runIndex++){
-			if(leftRunMemSize[runIndex]!=-1){
-
-            			if(leftRunMemSize[runIndex]==0){
-
+            			if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1){// Block empty and data to load in file
                				readState =  read(fileno(pFileRun[runIndex]), &(buffer[(runIndex+1)*runMemSize]),runMemSize*sizeof(uint64_t)); 
                				if (readState > 0) {
+
   						leftRunMemSize[runIndex]=readState/sizeof(uint64_t);
 						initialRunMemSize[runIndex] = readState/sizeof(uint64_t);
                                                 // push first element of run on priority queue
-                			        pq.push(buffer[runIndex*runMemSize]);
+                			        pq.push(buffer[(runIndex+1)*runMemSize]);
+                                              
+
   					} else if (readState == 0){ 
 						leftRunMemSize[runIndex]=-1;
 						countFinished++;
 
 					}                                    
              			}      
-            		}
         	}
 
 
@@ -282,14 +280,12 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
                		uint64_t topElement = pq.top();
                         pq.pop();
 
-
                         // write sorted elements in main memory
 			buffer[sortedLength] = topElement;
                         sortedLength++;
 
                         // write block of sorted elements on disk
 			if(sortedLength==runMemSize){
-                                cout << "Schreibe die Datei  " << runMemSize << " "  << endl;
 				write(fdOutput, &(buffer[0]), runMemSize*sizeof(uint64_t));
 				cout << "file written" << endl;
 				
@@ -303,6 +299,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 					//top element is in this run, move read pointer
 					if(topElement==buffer[(runIndex+1)*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]){
                					leftRunMemSize[runIndex]=leftRunMemSize[runIndex]-1;
+
 						if(leftRunMemSize[runIndex] > 0)
   							pq.push(buffer[(runIndex+1)*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]);
 						break;
