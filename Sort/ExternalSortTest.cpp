@@ -41,8 +41,7 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
 	ExternalSort sort;
 	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), bufferSize);
 	
-        fclose(testOutputFile);
-        testOutputFile = fopen ("testOutputFile", "r");
+    testOutputFile = fopen ("testOutputFile", "rb");
 	
  	// Read output file and verify order (blockwise)
   	int readState = 0;

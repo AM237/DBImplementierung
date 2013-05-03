@@ -72,23 +72,11 @@ int main(int argc, char** argv)
 	outputFile = argv[optind+1];
 	memBuffer = argv[optind+2];
 	
-	// Get handle to input and output files
-	FILE* pFile;
-	FILE* oFile;
- 	pFile = fopen (inputFile,"rb");
- 	oFile = fopen (outputFile, "wb");
- 	
-  	if (pFile==NULL) cerr << "Unable to open the input file" << endl;
-  	if (oFile==NULL) cerr << "Unable to open the output file" << endl;
-  	
   	// Call sorting algorithm
   	ExternalSort sort;
-  	sort.externalSort(fileno(pFile), -1, fileno(oFile),
+  	sort.externalSort(inputFile, -1, outputFile,
   					  atoi(memBuffer)*1024*1024, 
   	                  readableRuns, verbose, nocleanup);
-  	
-  	fclose(pFile);
-  	fclose(oFile);
-  	
+    	
   	return 0;
 }

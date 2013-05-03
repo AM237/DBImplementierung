@@ -6,22 +6,44 @@
 
 #include "ExternalSort.h"
 
-
+// Priority queue predicate, priority queue delivers smallest element
 struct OrderBySize
 {
     bool operator() ( uint64_t const a, uint64_t const b) { return a > b; }
 }; 
-typedef std::priority_queue<uint64_t, std::vector<uint64_t>, OrderBySize> prioritysize_queue;
+typedef std::priority_queue<uint64_t, std::vector<uint64_t>, OrderBySize> 
+        prioritysize_queue;
 
 
 
 // ____________________________________________________________________________
-void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput, 
-				  uint64_t memSize)
-{
-	externalSort(fdInput, size, fdOutput, memSize, false, false, false);
+void ExternalSort::externalSort(int fdInput, uint64_t size, 
+                                int fdOutput, uint64_t memSize)
+{  	
+	externalSort(fdInput, size, fdOutput, memSize, 
+				 false, false, false);
 }
 
+
+// ____________________________________________________________________________
+void ExternalSort::externalSort(const char* inputFile, uint64_t size, 
+                                const char* outputFile, uint64_t memSize, 
+                                bool readableRuns, bool verbose, bool nocleanup)
+{
+	FILE* pFile;
+	FILE* oFile;
+ 	pFile = fopen (inputFile,"rb");
+ 	oFile = fopen (outputFile, "wb");
+ 	
+  	if (pFile==NULL) cerr << "Unable to open the input file" << endl;
+  	if (oFile==NULL) cerr << "Unable to open the output file" << endl;
+  	
+	externalSort(fileno(pFile), size, fileno(oFile), memSize,
+				 readableRuns, verbose, nocleanup);
+	
+	fclose(pFile);
+  	fclose(oFile);
+}
 
 
 // ____________________________________________________________________________
@@ -198,9 +220,7 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
 // ____________________________________________________________________________
 void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 {	
-
-       
-    // File descriptorss
+    // File descriptors
 	FILE* pFileRun[runs];
 	FILE* oFile;
 
@@ -214,106 +234,120 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
     uint64_t leftRunMemSize[runs]; 
 	for (int i =0; i<runs; i++) leftRunMemSize[i]  = 0;
 
-        // initial memory size
-        uint64_t initialRunMemSize[runs]; 
+    // initial memory size
+    uint64_t initialRunMemSize[runs]; 
 	for (int i=0; i<runs; i++) initialRunMemSize[i]  = 0;
 
-        // length of sorted list
+    // length of sorted list
 	int sortedLength = 0;
 
-        // Number of finished runs
-        int countFinished = 0;
+    // Number of finished runs
+    int countFinished = 0;
 
-        // Read the input file blockwise into main memory
+    // Read the input file blockwise into main memory
   	int readState = 0;
 
-        // Not enough Memory to do a reasonable Merge
-        if (runMemSize < 1) cerr << "Not enough Memory" << endl;
+    // Not enough Memory to do a reasonable Merge
+    if (runMemSize < 1) cerr << "Not enough Memory" << endl;
 
-        //Buffer anlegen
-        uint64_t* buffer = new uint64_t[memSize/sizeof(uint64_t)];
-        uint64_t* actBuffer = buffer;
+    //Buffer anlegen
+    uint64_t* buffer = new uint64_t[memSize/sizeof(uint64_t)];
+    uint64_t* actBuffer = buffer;
                                         
-        // Open files
-	for( int runIndex = 0; runIndex < runs; runIndex++){
-                const char* filename = 
+    // Open run files
+	for(int runIndex = 0; runIndex < runs; runIndex++)
+	{
+    	const char* filename = 
   			(runDirPath+runDirName+"/"+runName+to_string(runIndex+1)).c_str();
+		
 		pFileRun[runIndex] = fopen (filename,"rb");
-                if (pFileRun[runIndex] ==NULL) cerr << "Unable to open temporary file" << endl;
-
+        if (pFileRun[runIndex] ==NULL) 
+        	cerr << "Unable to open temporary file" << endl;
 	}
 
-        // main loop to merge runs
-        do{
-                // Read blocks of data of emtpy runs
-		for( int runIndex = 0; runIndex < runs; runIndex++){
-            			if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1){// Block empty and data to load in file
-               				readState =  read(fileno(pFileRun[runIndex]), &(buffer[(runIndex+1)*runMemSize]),runMemSize*sizeof(uint64_t)); 
-               				if (readState > 0) {
+    // main loop to merge runs
+    do
+    {
+    	// Read blocks of data of emtpy runs
+		for( int runIndex = 0; runIndex < runs; runIndex++)
+		{
+		
+			// Block empty and data to load in file
+			if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1)
+			{
+			
+            	readState = read(fileno(pFileRun[runIndex]), 
+            	                        &(buffer[(runIndex+1)*runMemSize]),
+            	                        runMemSize*sizeof(uint64_t)); 
+            	                        
+                if (readState > 0)
+                {
 
-  						leftRunMemSize[runIndex]=readState/sizeof(uint64_t);
-						initialRunMemSize[runIndex] = readState/sizeof(uint64_t);
-                                                // push first element of run on priority queue
-                			        pq.push(buffer[(runIndex+1)*runMemSize]);
+  					leftRunMemSize[runIndex]=readState/sizeof(uint64_t);
+					initialRunMemSize[runIndex] = readState/sizeof(uint64_t);
+                    
+                    // push first element of run on priority queue
+                	pq.push(buffer[(runIndex+1)*runMemSize]);
                                               
-
-  					} else if (readState == 0){ 
+  				} else if (readState == 0)
+  				{ 
 						leftRunMemSize[runIndex]=-1;
 						countFinished++;
+				}                                    
+            }      
+        }
 
-					}                                    
-             			}      
-        	}
 
+        // all runs are processed
+        if(countFinished == runs)
+        {
+        	// write remaining sorted elements
+            write(fdOutput, &(buffer[0]), sortedLength*sizeof(uint64_t));          
+        } 
+        
+        else
+        {
+        
+          	// Get and remove top element
+            uint64_t topElement = pq.top();
+            pq.pop();
 
-               // all runs are processed
-               if(countFinished == runs){
-               
-			       cout << "countfinished = runs " << endl;
-                  // write remaining sorted elements
-                  write(fdOutput, &(buffer[0]), sortedLength*sizeof(uint64_t));
-                  
-                   cout << "countfinished = runs  finished writing" << endl;
-               } else
-               {
-               		// Get and remove top element
-               		uint64_t topElement = pq.top();
-                        pq.pop();
-
-                        // write sorted elements in main memory
+            // write sorted elements in main memory
 			buffer[sortedLength] = topElement;
-                        sortedLength++;
+            sortedLength++;
 
-                        // write block of sorted elements on disk
-			if(sortedLength==runMemSize){
+            // write block of sorted elements on disk
+			if(sortedLength==runMemSize)
+			{
 				write(fdOutput, &(buffer[0]), runMemSize*sizeof(uint64_t));
-				cout << "file written" << endl;
-				
 				sortedLength = 0;
 			}
 
-
-               		// Remove top element from buffer of run 
-	    		for( int runIndex = 0; runIndex < runs; runIndex++){
-            			if(leftRunMemSize[runIndex]!=-1){
+            // Remove top element from buffer of run 
+	    	for( int runIndex = 0; runIndex < runs; runIndex++)
+	    	{
+            	if(leftRunMemSize[runIndex]!=-1)
+            	{
+            	
 					//top element is in this run, move read pointer
-					if(topElement==buffer[(runIndex+1)*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]){
-               					leftRunMemSize[runIndex]=leftRunMemSize[runIndex]-1;
+					if(topElement==buffer[(runIndex+1)*runMemSize+
+					   (initialRunMemSize[runIndex]-leftRunMemSize[runIndex])])
+					{
+               			leftRunMemSize[runIndex]=leftRunMemSize[runIndex]-1;
 
-						if(leftRunMemSize[runIndex] > 0)
-  							pq.push(buffer[(runIndex+1)*runMemSize+(initialRunMemSize[runIndex]-leftRunMemSize[runIndex])]);
+						if(leftRunMemSize[runIndex] > 0) 
+							pq.push(buffer[(runIndex+1)*runMemSize+
+					   				(initialRunMemSize[runIndex]-
+					   				 leftRunMemSize[runIndex])]);
 						break;
 					}
 				}
-        		}
+        	}
 		}
 
-	}while( countFinished < runs);
+	} while( countFinished < runs);
 
-       delete[] buffer;
-       
-       cout << "Exiting merge sorted runs .... " << endl;
-
+    delete[] buffer;
 }
 
 
