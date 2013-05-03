@@ -200,18 +200,18 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 {	
 
        
-        // File descriptorss
+    // File descriptorss
 	FILE* pFileRun[runs];
 	FILE* oFile;
 
-        // Priority queue
-        prioritysize_queue pq; 
+    // Priority queue
+    prioritysize_queue pq; 
 
-        // Size of the loaded run and the sorted area sizeof(uint64_t)
-        uint64_t runMemSize = (memSize/(runs+1))/sizeof(uint64_t);
+    // Size of the loaded run and the sorted area sizeof(uint64_t)
+    uint64_t runMemSize = (memSize/(runs+1))/sizeof(uint64_t);
         
-        // left memory size - -1 if run is empty
-        uint64_t leftRunMemSize[runs]; 
+    // left memory size - -1 if run is empty
+    uint64_t leftRunMemSize[runs]; 
 	for (int i =0; i<runs; i++) leftRunMemSize[i]  = 0;
 
         // initial memory size
@@ -270,8 +270,12 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 
                // all runs are processed
                if(countFinished == runs){
+               
+			       cout << "countfinished = runs " << endl;
                   // write remaining sorted elements
                   write(fdOutput, &(buffer[0]), sortedLength*sizeof(uint64_t));
+                  
+                   cout << "countfinished = runs  finished writing" << endl;
                } else
                {
                		// Get and remove top element
@@ -287,6 +291,8 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 			if(sortedLength==runMemSize){
                                 cout << "Schreibe die Datei  " << runMemSize << " "  << endl;
 				write(fdOutput, &(buffer[0]), runMemSize*sizeof(uint64_t));
+				cout << "file written" << endl;
+				
 				sortedLength = 0;
 			}
 
@@ -305,10 +311,11 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
         		}
 		}
 
-
 	}while( countFinished < runs);
 
        delete[] buffer;
+       
+       cout << "Exiting merge sorted runs .... " << endl;
 
 }
 
