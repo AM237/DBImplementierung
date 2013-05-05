@@ -18,8 +18,13 @@
 #include <time.h>
 #include <queue>
 
+using namespace std;
 
+
+// ***************************************************************************
 // Constants
+// ***************************************************************************
+
 namespace
 {
     // Path to where directory containing the runs should be stored
@@ -32,15 +37,49 @@ namespace
 	 const std::string runName = "runNr";
 }
 
+// ***************************************************************************
+// Structs, templates, types
+// ***************************************************************************
+
+// Priority queue predicate, priority queue delivers smallest? element
+struct OrderBySize
+{
+    bool operator() ( uint64_t const a, uint64_t const b) { return a > b; }
+};
+
+struct Less
+{
+    bool operator() ( uint64_t const a, uint64_t const b) { return a < b; }
+};
+
+// Priority queue, delivers smallest element, vector container
+typedef std::priority_queue<uint64_t, std::vector<uint64_t>, OrderBySize> 
+        prioritysize_queue;
+ 
+        
+// Template class for priority queue with direct access to container        
+template <class T, class C, class P>        
+class priorityQueue: public std::priority_queue<T, C, P>
+{
+public:
+
+	C& getContainer() { return this->c; }
+};
+
+// Priority queue, delivers smallest element, offers direct access
+// to container   
+typedef priorityQueue<uint64_t, vector<uint64_t>, OrderBySize> p_queue;
 
 
-using namespace std;
+// ***************************************************************************
+// Main class
+// ***************************************************************************
 
+// Class with procedures for external sorting        
 class ExternalSort
 {
 
-public: 
-
+public:
 	// Calls private overload with standard options.
 	// Refer to private overload for parameters.
 	void externalSort(int fdInput, uint64_t size, int fdOutput, 
@@ -74,7 +113,11 @@ private:
 	// The buffer size (MB) is dictated by memSize, verbose controls amount 
 	// of feedback. Returns number of created runs.  
 	int makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
-                    bool readableRuns, bool verbose);        
+                    bool readableRuns, bool verbose);
+                    
+    // As above, but uses replacement selection
+    int makeSortedRunsReplSel(int fdInput, uint64_t size, uint64_t memSize,
+                    bool readableRuns, bool verbose);    
 
     // Helper function to merge the runs, parameters are the memSize to use,
 	// the output file descriptor and the number of runs
