@@ -6,3 +6,34 @@
 
 #include "BufferManager.h"
 
+//_____________________________________________________________________________
+BufferManager::BufferManager(const string& filename, uint64_t size)
+{
+
+}
+
+//_____________________________________________________________________________
+BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
+{
+	
+}
+
+
+//_____________________________________________________________________________
+void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
+{
+
+}
+
+
+//_____________________________________________________________________________
+void* BufferFrame::getData()
+{
+	return NULL;
+}
+
+//_____________________________________________________________________________
+BufferManager::~BufferManager()
+{
+
+}
