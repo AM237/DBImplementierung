@@ -185,7 +185,7 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
         
         	for (int i=0; i<limit; i++) 
         	{
-				if (write(fileno(runFile), &(buffer[i]), sizeof(uint64_t)) < 0)
+				if (write(fileno(runFile), buffer, bufferSize) < 0)
 				{
 				  	if (verbose)
 						cout << "Error writing to run file nr. " 
@@ -195,7 +195,7 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
 				}
 				
 				// Quit if enough elements have been processed
-	        	if (size > 0)
+	        /*	if (size > 0)
   				{
   					processedElements++;  					
   					if (processedElements >= size)
@@ -203,7 +203,7 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
   						sizeReached = true;
   						break;
   					}
-  				}
+  				}*/
 			}
 			fclose(runFile);
 		}
@@ -267,25 +267,25 @@ bool flushBufferToFile(vector<uint64_t>& buffer, int runIndex,
         if (runFile==NULL) cerr << "Unable to open run file number " 
         	                    << runIndex <<endl;
         
-        for (vector<uint64_t>::size_type i=0; i != buffer.size(); i++)
-        {
-			if (write(fileno(runFile), &(buffer[i]), sizeof(uint64_t)) < 0)
-			{
-				if (verbose)
-					cout << "Error writing to run file nr. " 
-						 << runIndex<<endl;
+
+		if (write(fileno(runFile), buffer.data(), 
+										sizeof(uint64_t)*buffer.size()) < 0)
+		{
+			if (verbose)
+				cout << "Error writing to run file nr. " 
+					 << runIndex<<endl;
 				fclose(runFile);
 				exit(1);
-			}
+		}
 				
 			// Quit if enough elements have been processed
-	        if (size > 0)
+	     /*   if (size > 0)
   			{
   				processedElements++;  					
   				if (processedElements >= size)
 					break;
-  			}
-		}
+  			}*/
+		//}
 		
 		buffer.clear();		    
 		fclose(runFile);		
@@ -294,7 +294,7 @@ bool flushBufferToFile(vector<uint64_t>& buffer, int runIndex,
 }
 
 
-
+/*
 // ____________________________________________________________________________
 int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size, 
 					uint64_t memSize, bool readableRuns, bool verbose)
@@ -503,6 +503,152 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   	blockedBuffer.resize(0);
   	outputBuffer.resize(0);
   	
+  	if (verbose) cout << endl;
+  	return runIndex;
+} 
+*/
+
+
+// ____________________________________________________________________________
+int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size, 
+					uint64_t memSize, bool readableRuns, bool verbose)
+{
+	// For simplicity, buffer size is limited to 4 GB.
+  	int requestedSize = memSize;
+  	if (requestedSize < 0 || requestedSize > (4*1024))
+  	{
+  		cerr << "Invalid requested memory buffer size" << endl;
+  		exit(1);
+  	}
+  		
+  	// Compute memory requirements, as well as the max number of
+  	// containable elements in the buffer
+  	int bufferSize = requestedSize * 1024 * 1024;
+  	if (bufferSize % sizeof(uint64_t) != 0)
+  	{
+  		cerr << "Cannot evenly fit data into buffer " << endl;	
+  		exit(1);
+  	}
+  	int numElements = bufferSize / sizeof(uint64_t);
+  
+  	// Make directory to store sorted runs
+  	if (system(("mkdir " + runDirPath + runDirName).c_str()) < 0) 
+  		cout << "Error creating runs folder" << endl;
+  		  	 
+	// input is partitioned into blocked and output buffers
+	// based on elements returned by the priority queue
+  	vector<uint64_t> blockedBuffer;
+  	vector<uint64_t> outputBuffer;
+  	 
+  	// reading loop counters, etc.
+  	int readState = 0;
+  	int runIndex = 1;
+  	uint64_t processedElements = 0;
+  	bool sizeReached = false;
+  	uint64_t lastValueRead = 0;
+  	
+  	// reading loop
+  	if (verbose) cout << endl;
+  	do
+  	{
+  		if (verbose)
+  			cout << endl << "Processing run number " << runIndex << endl;
+ 		
+  		// Read data from file
+		vector<uint64_t> inputBuffer;
+		inputBuffer.resize(numElements-blockedBuffer.size());
+  	
+		readState =  read(fdInput, inputBuffer.data(), 
+					 bufferSize-(blockedBuffer.size()*sizeof(uint64_t)));  		
+
+  		if (readState < 0) cerr << "Error reading file into buffer" << endl;
+  		if (readState > 0) 
+  			if (verbose) 
+  				cout << "Read " << readState 
+
+  		             << " bytes successfully" << endl;           
+  		if (readState == 0) 
+  		{
+  			if (verbose)
+  				cout << "Reached end of file." << endl;	
+  			break;
+
+  		}
+  		
+  		// If EOF encountered, make sure only relevant elements are taken
+  		// into account for sorting
+  		int limit = numElements;
+  		if (readState < bufferSize)
+  			limit = readState / sizeof(uint64_t);
+  		
+  		
+  		// In place transformation of input buffer into priority queue
+  		prioritysize_queue pq;
+  		while(inputBuffer.size()!=0)
+  		{
+  			if (inputBuffer.size() > limit) 
+  				inputBuffer.pop_back();
+
+  			else
+  			{
+	  			pq.push(inputBuffer.back());
+  				inputBuffer.pop_back();
+  			}
+  		}
+  		inputBuffer.resize(0);
+  		
+  		
+  		// Partition priority queue into blocked and output buffers
+  		while(!pq.empty())
+  		{
+  			uint64_t top = pq.top();
+  			pq.pop();
+  			
+  			// assign top element to output buffer
+  			if (top >= lastValueRead)
+  			{
+  				lastValueRead = top;
+  				outputBuffer.push_back(top);
+  				  			
+  			// assign top element to blocked buffer
+  			} else {
+  		
+  				blockedBuffer.push_back(top);
+  				
+  				if (blockedBuffer.size() >= numElements)
+  				{
+  					runIndex++;
+  					lastValueRead = blockedBuffer.back();
+  					sizeReached = flushBufferToFile(blockedBuffer, runIndex, 
+  						readableRuns, verbose, size, processedElements);
+  				}
+  			}	
+  		}	// end pq partitioning
+  		
+  		
+  		// clear output buffer
+  		sizeReached = flushBufferToFile(outputBuffer, runIndex, 
+  				  readableRuns, verbose, size, processedElements);
+
+  	} while (readState != 0 && !sizeReached);
+  	  
+  	// make sure all elements in the output buffer have been flushed
+  	if (outputBuffer.size()!= 0)
+  	{
+  		sizeReached = flushBufferToFile(outputBuffer, runIndex, 
+  				  readableRuns, verbose, size, processedElements);			  
+		if(sizeReached) return runIndex;
+	}
+	
+	// make sure all elements in the blocked buffer have been flushed
+	if (blockedBuffer.size()!= 0)
+	{
+		runIndex++;	
+  		sizeReached = flushBufferToFile(blockedBuffer, runIndex, 
+  				  readableRuns, verbose, size, processedElements);
+  		if(sizeReached) return runIndex;
+	}
+
   	if (verbose) cout << endl;
   	return runIndex;
 } 
