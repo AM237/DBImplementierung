@@ -90,7 +90,8 @@ public:
  	// Refer to the private overload for parameters
 	void externalSort(const char* inputFile, uint64_t size, 
 	                  const char* outputFile, uint64_t memSize, 
-	                  bool readableRuns, bool verbose, bool nocleanup);
+	                  bool readableRuns, bool verbose, bool nocleanup,
+	                  bool replSelect);
                   
 private:
 
@@ -105,7 +106,7 @@ private:
 	// See program usage for bool options / parameters
 	void externalSort(int fdInput, uint64_t size, int fdOutput, 
 					  uint64_t memSize, bool readableRuns, bool verbose, 
-					  bool nocleanup);
+					  bool nocleanup, bool replSelect);
                   
 	// Helper function for externalSort, takes an input file descriptor and 
 	// produces sorted partitions (runs) of the uint64_t data held in the file.

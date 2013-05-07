@@ -22,6 +22,7 @@ void printUsage()
 	     << "(txt) format" << endl;
 	cout << "Run with --verbose to get more feedback " << endl;
 	cout << "Run with --nocleanup to save the runs on disk " << endl;
+	cout << "Run with --replSelect to use replacement selection " << endl;
 
 	cout << endl << " ***************************************** " << endl;
 	exit(1);
@@ -30,10 +31,11 @@ void printUsage()
 // command line options
 struct option options[] =
 {
-	{"readableRuns",	0, NULL, 'r'},
-	{"verbose",			0, NULL, 'v'},
-	{"nocleanup",		0, NULL, 'n'},
-	{NULL, 				0, NULL,  0 }
+	{"readableRuns",			0, NULL, 'r'},
+	{"verbose",					0, NULL, 'v'},
+	{"nocleanup",				0, NULL, 'n'},
+	{"replSelect", 				0, NULL, 's'},
+	{NULL, 						0, NULL,  0 }
 };
 
 
@@ -47,12 +49,13 @@ int main(int argc, char** argv)
 	bool readableRuns = false;
 	bool verbose = false;
 	bool nocleanup = false;
+	bool replSelect = false;
 	
 	// Parse options
 	optind = 1;
 	while(true)
 	{
-		int c = getopt_long(argc, argv, "rvn", options, NULL);
+		int c = getopt_long(argc, argv, "rvns", options, NULL);
 		if (c == -1) break;
 		switch (c)
 		{
@@ -62,6 +65,8 @@ int main(int argc, char** argv)
 				verbose = true; break;
 			case 'n':
 				nocleanup = true; break;
+			case 's':
+				replSelect = true; break;
 			default: printUsage();
 		}
 	}
@@ -76,7 +81,7 @@ int main(int argc, char** argv)
   	ExternalSort sort;
   	sort.externalSort(inputFile, -1, outputFile,
   					  atoi(memBuffer)*1024*1024, 
-  	                  readableRuns, verbose, nocleanup);
+  	                  readableRuns, verbose, nocleanup, replSelect);
     	
   	return 0;
 }
