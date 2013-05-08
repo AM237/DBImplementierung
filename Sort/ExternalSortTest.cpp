@@ -7,9 +7,10 @@
 #include <gtest/gtest.h>
 #include "ExternalSort.h"
 
+using namespace std;
 
-// Test a 4MB input file with a 1MB buffer
-TEST(ExternalSortTest, externalSort1MBBuffer)
+// Test a 4MB input file with a 1MB buffer, with no replacement selection
+TEST(ExternalSortTest, externalSort1MBBufferNoReplSelect)
 {
 	// Create a ~4MB file with uint64_t values in descending order
 	// (data written in binary format)
@@ -33,13 +34,100 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
 	fclose(testFile);
 	testFile = fopen("testFile", "rb");
 
+	// Call sorting function	
+	int bufferSize = 1 * 1024 * 1024;
+  	int numElements = bufferSize / sizeof(uint64_t);
+	
+	ExternalSort sort;
+	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile),
+					  bufferSize, false, false, false, false);
+			
+    testOutputFile = fopen ("testOutputFile", "rb");
+    
+    uint64_t counter = 0;
+	
+ 	// Read output file and verify order (blockwise)
+  	int readState = 0;
+  	do
+  	{  		
+  		// Allocate buffer (make as large as possible to minimize
+  		// the number of reads required)
+		uint64_t* buffer = new uint64_t[numElements];
+	
+		readState =  read(fileno(testOutputFile), buffer, bufferSize);  		
+  	
+  		if (readState < 0) cerr << "Error reading file into buffer " 
+  		                        << readState << endl;
+  		if (readState == 0) 
+  		{
+  			delete[] buffer;
+  			break;
+  		}
+  		
+  		// If EOF encountered, make sure only relevant elements are taken
+  		// into account for sorting
+  		int limit = numElements;
+  		if (readState < bufferSize)
+  			limit = readState / sizeof(uint64_t);
+  		
+  		// Check ordering
+  		for (int i = 0; i < limit-1; i++)
+  		{
+			counter++;
+  			ASSERT_EQ(buffer[i], counter);
+  			ASSERT_TRUE(buffer[i] < buffer[i+1]);		
+  		}
+  		
+  		counter++;
+  			
+		// Deallocate memory
+  		delete[] buffer;
+  	
+  	} while (readState != 0);
+  	
+  	// Cleanup
+  	fclose(testFile);
+  	fclose(testOutputFile);
+  	if (system("rm testFile") < 0) 
+  		cout << "Error removing testFile" << endl;
+	if (system("rm testOutputFile") < 0) 
+		cout << "Error removing testOutputFile" << endl;
+		
+}
+
+
+// Test a 4MB input file with a 1MB buffer, using replacement selection
+TEST(ExternalSortTest, externalSort1MBBufferReplSelect)
+{
+	// Create a ~4MB file with uint64_t values in descending order
+	// (data written in binary format)
+	FILE* testFile;
+	FILE* testOutputFile;
+ 	testFile = fopen ("testFile", "wb");
+ 	testOutputFile = fopen ("testOutputFile", "wb");
+ 	
+ 	// 4 MB
+ 	int n = 500000;
+ 	// 5 GB
+ 	//int n = 640000000;
+ 	
+ 	for (unsigned i=n; i>0; i--) {
+		uint64_t x = i;
+		if (write(fileno(testFile), &x, sizeof(uint64_t)) < 0) {
+			std::cout << "error writing to testFile" << endl;
+		}
+	}
+	
+	fclose(testFile);
+	testFile = fopen("testFile", "rb");
 
 	// Call sorting function	
 	int bufferSize = 1 * 1024 * 1024;
   	int numElements = bufferSize / sizeof(uint64_t);
 	
 	ExternalSort sort;
-	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile), bufferSize);
+	sort.externalSort(fileno(testFile), -1, fileno(testOutputFile),
+					  bufferSize, false, false, false, true);
 	
     testOutputFile = fopen ("testOutputFile", "rb");
     
@@ -54,8 +142,7 @@ TEST(ExternalSortTest, externalSort1MBBuffer)
 		uint64_t* buffer = new uint64_t[numElements];
 	
 		readState =  read(fileno(testOutputFile), buffer, bufferSize);  		
-  		
-
+  	
   		if (readState < 0) cerr << "Error reading file into buffer " 
   		                        << readState << endl;
   		if (readState == 0) 

@@ -7,19 +7,10 @@
 #ifndef EXTERNALSORT_H
 #define EXTERNALSORT_H
 
-#include <stdint.h>
-#include <unistd.h>
-#include <vector>
+#include <gtest/gtest.h>
 #include <string>
-#include <algorithm>
-#include <fcntl.h>
-#include <iostream>
-#include <fstream>
-#include <time.h>
 #include <queue>
-
-using namespace std;
-
+#include <iostream>
 
 // ***************************************************************************
 // Constants
@@ -47,30 +38,11 @@ struct OrderBySize
     bool operator() ( uint64_t const a, uint64_t const b) { return a > b; }
 };
 
-struct Less
-{
-    bool operator() ( uint64_t const a, uint64_t const b) { return a < b; }
-};
-
 // Priority queue, delivers smallest element, vector container
 typedef std::priority_queue<uint64_t, std::vector<uint64_t>, OrderBySize> 
         prioritysize_queue;
  
         
-// Template class for priority queue with direct access to container        
-template <class T, class C, class P>        
-class priorityQueue: public std::priority_queue<T, C, P>
-{
-public:
-
-	C& getContainer() { return this->c; }
-};
-
-// Priority queue, delivers smallest element, offers direct access
-// to container   
-typedef priorityQueue<uint64_t, vector<uint64_t>, OrderBySize> p_queue;
-
-
 // ***************************************************************************
 // Main class
 // ***************************************************************************
@@ -101,9 +73,11 @@ private:
 	// uing64_t integers contained therein, writing the output to file with 
 	// descriptor fdOutput. Buffer size (b) is given by memSize. must be 
 	// divisible by sizeof(uint64_t)
-	//  size gives the number of integer values to consider. size = -1 sorts 
+	// size gives the number of integer values to consider. size = -1 sorts 
 	// all values in the input file.
 	// See program usage for bool options / parameters
+	FRIEND_TEST(ExternalSortTest, externalSort1MBBufferNoReplSelect);
+	FRIEND_TEST(ExternalSortTest, externalSort1MBBufferReplSelect);
 	void externalSort(int fdInput, uint64_t size, int fdOutput, 
 					  uint64_t memSize, bool readableRuns, bool verbose, 
 					  bool nocleanup, bool replSelect);

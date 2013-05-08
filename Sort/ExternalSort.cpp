@@ -5,6 +5,16 @@
 
 
 #include "ExternalSort.h"
+#include <stdint.h>
+#include <unistd.h>
+#include <vector>
+#include <algorithm>
+#include <fcntl.h>
+#include <fstream>
+#include <time.h>
+
+
+using namespace std;
 
 // ____________________________________________________________________________
 void ExternalSort::externalSort(int fdInput, uint64_t size, 
@@ -76,7 +86,6 @@ void ExternalSort::externalSort(int fdInput, uint64_t size, int fdOutput,
 			cout << "Error deleting runs folder" << endl;
 		cout << "done. " << endl << endl;
 	}
-	
 }
 
 // ____________________________________________________________________________
@@ -183,30 +192,25 @@ int ExternalSort::makeSortedRuns(int fdInput, uint64_t size, uint64_t memSize,
         	if (runFile==NULL) cerr << "Unable to open run file number " 
         	                        << runIndex <<endl;
         
-        	for (int i=0; i<limit; i++) 
-        	{
-				if (write(fileno(runFile), buffer, bufferSize) < 0)
-				{
-				  	if (verbose)
-						cout << "Error writing to run file nr. " 
-						     << runIndex<<endl;
+        	// Quit if enough elements processed
+			while (size > 0 && limit + processedElements > size)	
+				limit--;
+		
+			if (write(fileno(runFile), buffer, limit*sizeof(uint64_t)) < 0)
+			{
+				if (verbose)
+					cout << "Error writing to run file nr. " 
+					     << runIndex<<endl;
 					fclose(runFile);
 					exit(1);
-				}
-				
-				// Quit if enough elements have been processed
-	        /*	if (size > 0)
-  				{
-  					processedElements++;  					
-  					if (processedElements >= size)
-  					{
-  						sizeReached = true;
-  						break;
-  					}
-  				}*/
 			}
+			
+			processedElements += limit;
 			fclose(runFile);
 		}
+		
+		// Deallocate memory
+		delete[] buffer;
         
    		if (verbose)
 			cout << "Finished processing run number " << runIndex << endl;  		
@@ -267,9 +271,16 @@ bool flushBufferToFile(vector<uint64_t>& buffer, int runIndex,
         if (runFile==NULL) cerr << "Unable to open run file number " 
         	                    << runIndex <<endl;
         
-
+        // Quit if enough elements processed
+		bool shortBuffer = false;
+		while (size > 0 && buffer.size() + processedElements > size)
+		{
+			if(!shortBuffer) shortBuffer = true;
+			buffer.pop_back();
+		}
+		
 		if (write(fileno(runFile), buffer.data(), 
-										sizeof(uint64_t)*buffer.size()) < 0)
+			sizeof(uint64_t)*buffer.size()) < 0)
 		{
 			if (verbose)
 				cout << "Error writing to run file nr. " 
@@ -278,23 +289,17 @@ bool flushBufferToFile(vector<uint64_t>& buffer, int runIndex,
 				exit(1);
 		}
 				
-			// Quit if enough elements have been processed
-	     /*   if (size > 0)
-  			{
-  				processedElements++;  					
-  				if (processedElements >= size)
-					break;
-  			}*/
-		//}
+		processedElements += buffer.size();
 		
 		buffer.clear();		    
 		fclose(runFile);		
-		return false;
+		return shortBuffer;
 	}
 }
 
 
 /*
+// Deprecated
 // ____________________________________________________________________________
 int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size, 
 					uint64_t memSize, bool readableRuns, bool verbose)
@@ -478,8 +483,6 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   		
   	} while (readState != 0 && !sizeReached);
   	
-  	
-  
   	// make sure all elements in the output buffer have been flushed
   	if (outputBuffer.size()!= 0)
   	{
@@ -496,8 +499,7 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   		sizeReached = flushBufferToFile(blockedBuffer, runIndex, 
   				  readableRuns, verbose, size, processedElements);
 	}
-  	
-  			  	
+  		  	
   	afterloop:
   	
   	blockedBuffer.resize(0);
@@ -529,7 +531,7 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   		cerr << "Cannot evenly fit data into buffer " << endl;	
   		exit(1);
   	}
-  	int numElements = bufferSize / sizeof(uint64_t);
+  	size_t numElements = bufferSize / sizeof(uint64_t);
   
   	// Make directory to store sorted runs
   	if (system(("mkdir " + runDirPath + runDirName).c_str()) < 0) 
@@ -577,7 +579,7 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   		
   		// If EOF encountered, make sure only relevant elements are taken
   		// into account for sorting
-  		int limit = numElements;
+  		size_t limit = numElements;
   		if (readState < bufferSize)
   			limit = readState / sizeof(uint64_t);
   		
@@ -588,7 +590,6 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   		{
   			if (inputBuffer.size() > limit) 
   				inputBuffer.pop_back();
-
   			else
   			{
 	  			pq.push(inputBuffer.back());
@@ -621,14 +622,25 @@ int ExternalSort::makeSortedRunsReplSel(int fdInput, uint64_t size,
   					lastValueRead = blockedBuffer.back();
   					sizeReached = flushBufferToFile(blockedBuffer, runIndex, 
   						readableRuns, verbose, size, processedElements);
+  						
+  					if (sizeReached)
+  					{
+  						outputBuffer.resize(0);
+						break;
+  					}
   				}
   			}	
   		}	// end pq partitioning
   		
-  		
   		// clear output buffer
   		sizeReached = flushBufferToFile(outputBuffer, runIndex, 
   				  readableRuns, verbose, size, processedElements);
+  				  
+  		if (sizeReached)
+  		{
+  			blockedBuffer.resize(0);
+  			break;
+  		}
 
   	} while (readState != 0 && !sizeReached);
   	  
@@ -660,7 +672,6 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 {	
     // File descriptors
 	FILE* pFileRun[runs];
-	FILE* oFile;
 
     // Priority queue
     prioritysize_queue pq; 
@@ -669,7 +680,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
     uint64_t runMemSize = (memSize/(runs+1))/sizeof(uint64_t);
         
     // left memory size - -1 if run is empty
-    uint64_t leftRunMemSize[runs]; 
+    int leftRunMemSize[runs]; 
 	for (int i =0; i<runs; i++) leftRunMemSize[i]  = 0;
 
     // initial memory size
@@ -677,7 +688,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 	for (int i=0; i<runs; i++) initialRunMemSize[i]  = 0;
 
     // length of sorted list
-	int sortedLength = 0;
+	uint64_t sortedLength = 0;
 
     // Number of finished runs
     int countFinished = 0;
@@ -690,7 +701,6 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 
     //Buffer anlegen
     uint64_t* buffer = new uint64_t[memSize/sizeof(uint64_t)];
-    uint64_t* actBuffer = buffer;
                                         
     // Open run files
 	for(int runIndex = 0; runIndex < runs; runIndex++)
@@ -707,20 +717,17 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
     do
     {
     	// Read blocks of data of emtpy runs
-		for( int runIndex = 0; runIndex < runs; runIndex++)
-		{
-		
+		for(int runIndex = 0; runIndex < runs; runIndex++)
+		{		
 			// Block empty and data to load in file
-			if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1)
-			{
-			
+			//if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1)
+			if(leftRunMemSize[runIndex]==0)
+			{			
             	readState = read(fileno(pFileRun[runIndex]), 
             	                        &(buffer[(runIndex+1)*runMemSize]),
-            	                        runMemSize*sizeof(uint64_t)); 
-            	                        
+            	                        runMemSize*sizeof(uint64_t));            	                        
                 if (readState > 0)
                 {
-
   					leftRunMemSize[runIndex]=readState/sizeof(uint64_t);
 					initialRunMemSize[runIndex] = readState/sizeof(uint64_t);
                     
@@ -735,17 +742,17 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
             }      
         }
 
-
         // all runs are processed
         if(countFinished == runs)
         {
         	// write remaining sorted elements
-            write(fdOutput, &(buffer[0]), sortedLength*sizeof(uint64_t));          
+            if (write(fdOutput, buffer, sortedLength*sizeof(uint64_t)) < 0)
+            	cout << "Error writing sorted run elements "
+            		 << "to output file" << endl;
         } 
         
         else
-        {
-        
+        {      
           	// Get and remove top element
             uint64_t topElement = pq.top();
             pq.pop();
@@ -757,7 +764,9 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
             // write block of sorted elements on disk
 			if(sortedLength==runMemSize)
 			{
-				write(fdOutput, &(buffer[0]), runMemSize*sizeof(uint64_t));
+				if (write(fdOutput, buffer, runMemSize*sizeof(uint64_t)) < 0)
+	            	cout << "Error writing sorted run elements "
+                 		 << "to output file" << endl;
 				sortedLength = 0;
 			}
 
