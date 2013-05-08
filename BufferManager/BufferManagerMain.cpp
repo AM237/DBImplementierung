@@ -3,10 +3,12 @@
 // ExternalSortMain.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
+
+#include "BufferManager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include "BufferManager.h"
+#include <iostream>
 
 using namespace std;
 
