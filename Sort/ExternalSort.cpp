@@ -683,6 +683,10 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
     int leftRunMemSize[runs]; 
 	for (int i =0; i<runs; i++) leftRunMemSize[i]  = 0;
 
+
+    bool leftRunMem[runs]; 
+	for (int i =0; i<runs; i++) leftRunMem[i]  = true;
+
     // initial memory size
     uint64_t initialRunMemSize[runs]; 
 	for (int i=0; i<runs; i++) initialRunMemSize[i]  = 0;
@@ -720,7 +724,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 		for(int runIndex = 0; runIndex < runs; runIndex++)
 		{		
 			// Block empty and data to load in file
-			//if(leftRunMemSize[runIndex]==0 && leftRunMemSize[runIndex]!=-1)
+
 			if(leftRunMemSize[runIndex]==0)
 			{			
             	readState = read(fileno(pFileRun[runIndex]), 
@@ -730,13 +734,14 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
                 {
   					leftRunMemSize[runIndex]=readState/sizeof(uint64_t);
 					initialRunMemSize[runIndex] = readState/sizeof(uint64_t);
-                    
+                    leftRunMem[runIndex] = true;
+
                     // push first element of run on priority queue
                 	pq.push(buffer[(runIndex+1)*runMemSize]);
                                               
   				} else if (readState == 0)
   				{ 
-						leftRunMemSize[runIndex]=-1;
+                                                leftRunMem[runIndex] = false;
 						countFinished++;
 				}                                    
             }      
@@ -773,7 +778,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
             // Remove top element from buffer of run 
 	    	for( int runIndex = 0; runIndex < runs; runIndex++)
 	    	{
-            	if(leftRunMemSize[runIndex]!=-1)
+            	if(leftRunMem[runIndex] == true)
             	{
             	
 					//top element is in this run, move read pointer
@@ -789,7 +794,7 @@ void ExternalSort:: mergeSortedRuns(uint64_t memSize, int fdOutput, int runs)
 						break;
 					}
 				}
-        	}
+        		}
 		}
 
 	} while( countFinished < runs);
