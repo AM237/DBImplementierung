@@ -90,7 +90,7 @@ public:
 	// stored BufferFrame for this pageId, if such BufferFrame exists
 	void remove(uint64_t pageId)
 	{
-		std::vector<BufferFrame*>* frames = &hashTable[hash(pageId)];
+		std::vector<BufferFrame*>* frames = lookup(pageId);
 		for (size_t i = 0; i < frames->size(); i++)
 			if(frames->at(i)->pageId == pageId)
 			{

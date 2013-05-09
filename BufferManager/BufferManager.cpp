@@ -35,11 +35,30 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
 	// Case: page with pageId is buffered -> return page directly
-	// TODO
+	vector<BufferFrame*>* frames = hasher->lookup(pageId);
+	for (size_t i = 0; i < frames->size(); i++)
+	{
+		BufferFrame* bf = frames->at(i);
+		if (bf->pageId == pageId)
+			return *bf;
+	}
 	
 	// Case: page with pageId not buffered and space in buffer
 	// -> read from file into a free buffer frame.
-	// TODO
+	bool spaceFound = false;
+	for (size_t i = 0; i < framePool.size(); i++)
+	{
+		BufferFrame* frame = framePool.at(i);
+		if (frame->getData() == NULL)
+		{
+			spaceFound = true;
+			
+			// Read page from file into main memory. 
+			// Page begins at pageId * pageSize bytes
+			
+			
+		}
+	}
 	
 	// Case: page with pageId not buffered and buffer full
 	// -> use replacement strategy to replace an unfixed page in buffer
