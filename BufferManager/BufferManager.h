@@ -32,6 +32,33 @@ namespace constants
 // ***************************************************************************
 
 
+// 2Queues
+class 2Queues
+{
+
+public:
+
+	// Constructor, initially points to no data. This is primary indicator
+	// whether the rest of the info in the object is valid or not.
+	Queues() { }
+
+        // After page is fixed to change order page in 2Queue
+        void pageFixed();
+	
+        // After page is unfixed to change order page in 2Queue
+        void pageUnfixed();
+
+private:
+
+	// The FIFO queue
+	std::list<BufferFrame*> fifo;
+	
+	// The FIFO queue
+	std::list<BufferFrame*>  lru;
+};
+
+
+
 // Class representing a buffer frame in the buffer manager
 class BufferFrame
 {
@@ -144,6 +171,11 @@ private:
 	// The pool of buffer frames, is instantiated and filled
 	// on construction of the BufferManager object
 	std::vector<BufferFrame*> framePool;
+
+	// 
+	
+	std::vector<BufferFrame*> 2Queues;
+
 	
 	// Hash proxy, supporting queries for pages given their id
 	BufferHasher* hasher;
