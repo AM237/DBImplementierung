@@ -168,8 +168,8 @@ private:
 	// The number of frames to be managed
 	uint64_t numFrames;
 	
-	// The filename of the file on disk
-	std::string file;
+	// The file with pages on disk
+	FILE* file;
 	
 	// The pool of buffer frames, is instantiated and filled
 	// on construction of the BufferManager object

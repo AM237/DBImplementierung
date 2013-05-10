@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <queue>
+#include <sys/mman.h>
 
 using namespace std;
 
@@ -18,7 +19,11 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 {
 	// Initialize class fields
 	numFrames = size;
-	file = filename;
+	
+	// Open file with pages
+ 	file = fopen (filename.c_str(),"w+b");
+  	if (file==NULL) cerr << "Unable to open the input file" << endl;
+	
 	
 	// Initialize hasher. In terms of the size of the underlying hash table,
 	// the worst case is given when each page is mapped to its own unique
@@ -34,14 +39,21 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
+
+	cout << "mark 1 " << endl;
+
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
+	cout << "mark 2 " << endl;
 	for (size_t i = 0; i < frames->size(); i++)
 	{
+			cout << "mark 3 " << endl;
 		BufferFrame* bf = frames->at(i);
 		if (bf->pageId == pageId)
 			return *bf;
 	}
+	
+
 	
 	// Case: page with pageId not buffered and space in buffer
 	// -> read from file into a free buffer frame.
@@ -54,7 +66,19 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 			spaceFound = true;
 			
 			// Read page from file into main memory. 
-			// Page begins at pageId * pageSize bytes
+			// Page begins at pageId * pageSize bytes			
+			char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
+							PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 
+							pageId * constants::pageSize));
+							
+			cout << "printing memloc " << endl;
+			for (int i = 0; i < constants::pageSize; i++)
+			{
+				cout << *(memLoc + i) << endl;
+			}
+			
+			
+			
 			
 			
 		}
@@ -78,6 +102,9 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 //_____________________________________________________________________________
 BufferManager::~BufferManager()
 {
+	// Close file with pages
+	fclose(file);
+	
 	// Write all dirty frames to disk
 	// TODO
 
