@@ -61,6 +61,7 @@ private:
 
 	// Pointer to the page, which is of known size
 	void* data;
+
 };
 
 
@@ -73,13 +74,13 @@ public:
 
 	// Constructor, initially points to no data. This is primary indicator
 	// whether the rest of the info in the object is valid or not.
-	TwoQueues();
+	TwoQueues(){}
 
         // After page is fixed to change order page in 2Queue
-        void pageFixed();
+        void pageFixed(BufferFrame& frame);
 	
         // After page is unfixed to change order page in 2Queue
-        void pageUnfixed();
+        void pageUnfixed(BufferFrame& frame);
 
 private:
 

@@ -6,12 +6,32 @@
 
 #include "BufferManager.h"
 #include <unistd.h>
-#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <queue>
 
 using namespace std;
+
+
+
+
+//_____________________________________________________________________________
+void TwoQueues::pageFixed(BufferFrame& frame)
+{
+	cout << "pageFixed" << endl;
+
+}
+
+
+//_____________________________________________________________________________
+void TwoQueues::pageUnfixed(BufferFrame& frame)
+{
+	
+
+
+}
+
+
 
 //_____________________________________________________________________________
 BufferManager::BufferManager(const string& filename, uint64_t size)
@@ -26,6 +46,10 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 	// manager's frame capacity
 	hasher = new BufferHasher(numFrames);
 	
+	// Initialize TwoQueues
+	twoQueues = new TwoQueues();
+
+
 	// Initialize buffer frame pool
 	for (unsigned int i = 0; i < size; i++)
 		framePool.push_back(new BufferFrame());
@@ -44,7 +68,16 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// Case: page with pageId not buffered and buffer full
 	// -> use replacement strategy to replace an unfixed page in buffer
 	// TODO
+
+
+        BufferFrame* bufferFrame = new BufferFrame();
+        bufferFrame->pageId = pageId; 
+
+        twoQueues->pageFixed(*bufferFrame);
+
 }
+
+
 
 
 //_____________________________________________________________________________
