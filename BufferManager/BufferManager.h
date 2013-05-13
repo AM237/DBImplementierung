@@ -20,6 +20,7 @@
 namespace constants
 {
 	// Page size should be a multiple of the size of a page in virtual memory
+	// const int pageSize = sysconf(_SC_PAGE_SIZE);
 	const int pageSize = 4096;
 }
 
@@ -38,6 +39,7 @@ namespace constants
 // Class representing a buffer frame in the buffer manager
 class BufferFrame
 {
+	friend class BufferManager;
 
 public:
 
@@ -100,20 +102,31 @@ class BufferHasher
 public:
 
 	// Constructor, defines how many buckets in the table
-	BufferHasher(uint64_t tableSize) { size = tableSize; }
+	BufferHasher(uint64_t tableSize) 
+	{ 
+		size = tableSize;
+		for(int i = 0; i < size; i++)
+		{
+			std::vector<BufferFrame*> initial;
+			hashTable.push_back(initial);
+		}
+	}
 
 	// Given a page id returns the index of the bucket in the
 	// hash table, in the range [0, tableSize)
 	uint64_t hash(uint64_t pageId) { return pageId % size; }
 	
 	// Add an association between the given pageId and a BufferFrame
-	void insert(uint64_t pageId, BufferFrame*);
+	void insert(uint64_t pageId, BufferFrame* bf)
+	{
+		hashTable[hash(pageId)].push_back(bf);
+	}
 	
 	// Returns references to all of the BufferFrames associated with
 	// the given pageId
 	std::vector<BufferFrame*>* lookup(uint64_t pageId)
 	{
-		return &hashTable[hash(pageId)];
+		return &hashTable[hash(pageId)]; 
 	}
 	
 	// Removes the association between the given pageId and the
@@ -168,17 +181,17 @@ private:
 	// The number of frames to be managed
 	uint64_t numFrames;
 	
-	// The file with pages on disk
-	FILE* file;
+	// Handler to file with pages on disk. The file is assumed to contain
+	// a multiple of constants::pageSize bytes. The pages
+	// are assumed to be numered 0 ... n.
+	int fileDescriptor;
 	
 	// The pool of buffer frames, is instantiated and filled
 	// on construction of the BufferManager object
 	std::vector<BufferFrame*> framePool;
 
-
 	// TwoQueues to manage replacements
 	TwoQueues* twoQueues;
-
 	
 	// Hash proxy, supporting queries for pages given their id
 	BufferHasher* hasher;

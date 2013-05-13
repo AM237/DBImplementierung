@@ -47,16 +47,16 @@ int main(int argc, char** argv)
 	}
     
     
-    
+    /*
     BufferManager bm("testFile", 10);
     bm.fixPage(0, false);
-    
+    */
     	
-  	return 0;
+  	
   	
   	
   	/*
-  		FILE* testFile;
+  	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
 
  	
@@ -83,8 +83,8 @@ int main(int argc, char** argv)
 	fclose(testFile);
   	
   	cout << "finished writing to file" << endl;
-  	exit(1);
+  	exit(1);*/
   	
-  	*/
+  	return 0;
   	
 }
