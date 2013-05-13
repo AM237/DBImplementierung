@@ -47,10 +47,10 @@ int main(int argc, char** argv)
 	}
     
     
-    /*
+    
     BufferManager bm("testFile", 10);
     bm.fixPage(0, false);
-    */
+    
     	
   	
   	

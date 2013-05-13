@@ -78,11 +78,14 @@ public:
 	// whether the rest of the info in the object is valid or not.
 	TwoQueues(){}
 
-        // After page is fixed to change order page in 2Queue
-        void pageFixed(BufferFrame& frame);
+        // Apage is fixed first time, added to Fifo queue
+        void pageFixedFirstTime(BufferFrame *frame);
+
+        // After page is fixed again and moved to LRU queue if in Fifo queue
+        void pageFixedAgain(BufferFrame *frame);
 	
-        // After page is unfixed to change order page in 2Queue
-        void pageUnfixed(BufferFrame& frame);
+        // replace a Frame in the 2q
+        BufferFrame* replaceFrame();
 
 private:
 
@@ -163,6 +166,9 @@ public:
 	// file 'filename'
 	BufferManager(const std::string& filename, uint64_t size);
 	
+        // Reads page with pageID into frame
+        void readPageInFrame(uint64_t pageId, BufferFrame* frame );
+
 	// A method to retrieve frames given a page ID and indicating whether the
 	// page will be held exclusively by this thread or not. The method can fail
 	// if no free frame is available and no used frame can be freed.
