@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdint.h>
 #include <list>
+#include <gtest/gtest.h>
 
 
 // ***************************************************************************
@@ -45,6 +46,7 @@ public:
 
 	// Constructor, initially points to no data. This is primary indicator
 	// whether the rest of the info in the object is valid or not.
+	FRIEND_TEST(BufferManagerTest, constructorDestructor);
 	BufferFrame() { data = NULL; }
 
 	// The id of the page held in the frame.
@@ -74,18 +76,18 @@ class TwoQueues
 
 public:
 
-	// Constructor, initially points to no data. This is primary indicator
-	// whether the rest of the info in the object is valid or not.
+	// Constructor
+	FRIEND_TEST(BufferManagerTest, constructorDestructor);
 	TwoQueues(){}
 
-        // Apage is fixed first time, added to Fifo queue
-        void pageFixedFirstTime(BufferFrame *frame);
+    // A page is fixed first time, added to Fifo queue
+    void pageFixedFirstTime(BufferFrame *frame);
 
-        // After page is fixed again and moved to LRU queue if in Fifo queue
-        void pageFixedAgain(BufferFrame *frame);
+    // After page is fixed again and moved to LRU queue if in Fifo queue
+    void pageFixedAgain(BufferFrame *frame);
 	
-        // replace a Frame in the 2q
-        BufferFrame* replaceFrame();
+    // replace a Frame in the 2q
+    BufferFrame* replaceFrame();
 
 private:
 
@@ -97,6 +99,8 @@ private:
 };
 
 
+
+
 // Lookup proxy component for external classes, keeps track of
 // pages / buffer frames in the page / frame pool.
 // Implements a hash table as a lookup mechanism
@@ -106,10 +110,11 @@ class BufferHasher
 public:
 
 	// Constructor, defines how many buckets in the table
+	FRIEND_TEST(BufferManagerTest, constructorDestructor);
 	BufferHasher(uint64_t tableSize) 
 	{ 
 		size = tableSize;
-		for(int i = 0; i < size; i++)
+		for(unsigned int i = 0; i < size; i++)
 		{
 			std::vector<BufferFrame*> initial;
 			hashTable.push_back(initial);
@@ -156,6 +161,9 @@ private:
 };
 
 
+
+
+
 // Manages page IO to/in main memory
 class BufferManager
 {
@@ -164,10 +172,8 @@ public:
 
 	// Creates a new instance that manages #size frames and operates on the
 	// file 'filename'
+	FRIEND_TEST(BufferManagerTest, constructorDestructor);
 	BufferManager(const std::string& filename, uint64_t size);
-	
-        // Reads page with pageID into frame
-        void readPageInFrame(uint64_t pageId, BufferFrame* frame );
 
 	// A method to retrieve frames given a page ID and indicating whether the
 	// page will be held exclusively by this thread or not. The method can fail
@@ -184,6 +190,12 @@ public:
 	~BufferManager();
                   
 private:
+	
+	// Reads page with pageID into frame
+    void readPageInFrame(uint64_t pageId, BufferFrame* frame );
+    
+    // Writes the page #frame back to disk
+    void flushFrameToFile(BufferFrame& frame);
 
 	// The number of frames to be managed
 	uint64_t numFrames;
@@ -202,6 +214,8 @@ private:
 	
 	// Hash proxy, supporting queries for pages given their id
 	BufferHasher* hasher;
+	
+	
 };
 
 #endif  // BUFFERMANAGER_H

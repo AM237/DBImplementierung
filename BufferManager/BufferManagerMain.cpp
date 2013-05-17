@@ -47,44 +47,11 @@ int main(int argc, char** argv)
 	}
     
     
-    
+    /*
     BufferManager bm("testFile", 10);
     bm.fixPage(0, false);
+    */
     
-    	
-  	
-  	
-  	
-  	/*
-  	FILE* testFile;
- 	testFile = fopen ("testFile", "wb");
-
- 	
- 	for (unsigned i=50; i>0; i=i-2)
-    {
-		
-		for(int j = 0; j < 4096; j++)
-		{
-			char x = 'a';
-			if (write(fileno(testFile), &x, sizeof(char)) < 0)
-			std::cout << "error writing to testFile" << endl;
-		}
-		
-		for(int j = 0; j < 4096; j++)
-		{
-			char x = 'b';
-			if (write(fileno(testFile), &x, sizeof(char)) < 0) 
-			std::cout << "error writing to testFile" << endl;
-		}		
-	}
-		
-	
-	
-	fclose(testFile);
-  	
-  	cout << "finished writing to file" << endl;
-  	exit(1);*/
-  	
   	return 0;
   	
 }

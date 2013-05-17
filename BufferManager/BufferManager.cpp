@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
-#include  <fcntl.h>
+#include <fcntl.h>
 #include <queue>
 #include <sys/mman.h>
 
@@ -32,7 +32,6 @@ void TwoQueues::pageFixedAgain(BufferFrame* frame)
 	std::list<BufferFrame*>::iterator it;
 
 	// frame is in FIFO queue, move to LRU queue
-
 	for(it=fifo.begin(); it != fifo.end(); ++it)
 	{    
 		BufferFrame* bf = *it;
@@ -44,8 +43,7 @@ void TwoQueues::pageFixedAgain(BufferFrame* frame)
 		}
 	}
 
-        // frame is in LRU queue, move to front of LRU queue
-
+    // frame is in LRU queue, move to front of LRU queue
 	for(it=lru.begin(); it != lru.end(); ++it)
 	{    
 		BufferFrame* bf = *it;
@@ -56,7 +54,6 @@ void TwoQueues::pageFixedAgain(BufferFrame* frame)
 			return;
 		}
 	}
-
 }
 
 
@@ -87,8 +84,7 @@ BufferFrame* TwoQueues::replaceFrame()
 		}
 	}
 
-      return NULL;
- 
+    return NULL;
 }
 
 
@@ -121,7 +117,6 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 	// Initialize TwoQueues
 	twoQueues = new TwoQueues();
 
-
 	// Initialize buffer frame pool
 	for (unsigned int i = 0; i < size; i++)
 		framePool.push_back(new BufferFrame());
@@ -132,28 +127,27 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 void BufferManager::readPageInFrame(uint64_t pageId, BufferFrame* frame )
 {
 
-                        // Read page from file into main memory. 
-			// Page begins at pageId * pageSize bytes
-			// TODO: pointer goes out of scope?		
-			char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
-							PROT_READ | PROT_WRITE, MAP_SHARED, fileDescriptor, 
-							pageId * constants::pageSize));				
+	// Read page from file into main memory. 
+	// Page begins at pageId * pageSize bytes
+	// TODO: pointer goes out of scope?		
+	char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
+					PROT_READ | PROT_WRITE, MAP_SHARED, fileDescriptor, 
+					pageId * constants::pageSize));				
 			
-			if (memLoc == MAP_FAILED)
-			{
-				cout << "Failed to read page into main memory" << endl;
-				exit(1);
-			}
+	if (memLoc == MAP_FAILED)
+	{
+		cout << "Failed to read page into main memory" << endl;
+		exit(1);
+	}
 			
-			// Update frame info
-			frame->data = memLoc;
-			frame->isDirty = false;
-			frame->pageId = pageId;
-			frame->pageFixed = true;
+	// Update frame info
+	frame->data = memLoc;
+	frame->isDirty = false;
+	frame->pageId = pageId;
+	frame->pageFixed = true;
 			
-			// Update frame pool proxy
-			hasher->insert(pageId, frame);
-
+	// Update frame pool proxy
+	hasher->insert(pageId, frame);
 }
 
 
@@ -166,14 +160,12 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	{
 		BufferFrame* bf = frames->at(i);
 		if (bf->pageId == pageId)
-                  {
-                        twoQueues->pageFixedAgain(bf);
+        {
+            twoQueues->pageFixedAgain(bf);
 			return *bf;
-                  }
+        }
 	}
 	
-
-
 	// Case: page with pageId not buffered and space available in buffer
 	// -> read from file into a free buffer frame, and add an association
 	// between the pageId just read and the BufferFrame the data was read into
@@ -184,7 +176,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		BufferFrame* frame = framePool.at(i);
 		if (frame->getData() == NULL)
 		{
-                        twoQueues->pageFixedFirstTime(frame);
+            twoQueues->pageFixedFirstTime(frame);
 			spaceFound = true;
 			readPageInFrame( pageId, frame );
 			break;		
@@ -192,30 +184,43 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	}
 	
 
-        if(spaceFound==false){
-
-
-
-		// Case: page with pageId not buffered and buffer full
-		// -> use replacement strategy to replace an unfixed page in buffer
-		// and update the frame pool proxy (hash table) accordingly.
-		// If no pages can be replaced, method is allowed to fail (via exception,
-		// block, etc.)
-		// TODO
-
-        
-        	BufferFrame* frame = twoQueues->replaceFrame();
-        	if (frame->getData() == NULL)//TODO no frame available
+	// Case: page with pageId not buffered and buffer full
+	// -> use replacement strategy to replace an unfixed page in buffer
+	// and update the frame pool proxy (hash table) accordingly.
+	// If no pages can be replaced, method is allowed to fail (via exception,
+	// block, etc.)
+    if(spaceFound==false)
+    {    
+       	BufferFrame* frame = twoQueues->replaceFrame();
+       	if (frame->getData() == NULL)//TODO no frame available
   		{
-          		twoQueues->pageFixedFirstTime(frame);
+       		twoQueues->pageFixedFirstTime(frame);
 			readPageInFrame( pageId, frame );
 		}
-
 	}	
-
 }
 
 
+
+//_____________________________________________________________________________
+void BufferManager::flushFrameToFile(BufferFrame& frame)
+{
+	uint64_t pageId = frame.pageId;
+	
+	// seek to correct position in file
+	if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
+	{
+		cout << "Error seeking for page on disk" << endl;
+		exit(1);
+	}
+		
+	// write page
+	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
+	{
+		cout << "Error writing page back to disk (unfix)" << endl;
+		exit(1);
+	}
+}
 
 
 //_____________________________________________________________________________
@@ -226,24 +231,11 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	frame.isDirty = isDirty;
 	frame.pageFixed = false;
 	
-	int pageId = frame.pageId;
 	
-	// Write page back to disk if dirty
+	// Write page back to disk if dirty, update dirty bit
 	if (isDirty)
 	{
-		// seek to correct position in file
-		if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
-		{
-			cout << "Error seeking for page on disk" << endl;
-			exit(1);
-		}
-		
-		// write page
-		if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
-		{
-			cout << "Error writing page back to disk (unfix)" << endl;
-			exit(1);
-		}
+		flushFrameToFile(frame);
 	
 		// Data on disk now corresponds to data in buffer, so frame is
 		// no longer dirty	
@@ -253,23 +245,27 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	
 		// ?
 	}
-	
-
-
 }
 
 //_____________________________________________________________________________
 BufferManager::~BufferManager()
-{
+{	
+	// Write all dirty frames to disk + clean main memory
+	// Note: order in which deletes occur is important	
+	for (size_t i = 0; i < framePool.size(); i++)
+	{
+		BufferFrame* frame = framePool[i];
+		if (frame->getData() != NULL && frame->isDirty)
+			flushFrameToFile(*frame);
+			
+		// delete data in frame
+		delete[] (char*)frame->data;
+		delete frame;
+	}
+	
 	// Close file with pages
-	//fclose(file);
 	close(fileDescriptor);
 	
-	// Write all dirty frames to disk + clean main memory
-	// TODO
-
-	// Free all resources
-	delete[] hasher;	
-	for (size_t i = 0; i < framePool.size(); i++)
-		delete[] framePool[i];
+	delete hasher;
+	delete twoQueues;	
 }
