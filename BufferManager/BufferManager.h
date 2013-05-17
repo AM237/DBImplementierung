@@ -192,11 +192,14 @@ public:
                   
 private:
 	
-	// Reads page with pageID into frame
-    void readPageInFrame(uint64_t pageId, BufferFrame* frame );
+	// Reads page with pageID into frame, updates hash table. The page becomes
+	// fixed in the frame, and is not dirty.
+	FRIEND_TEST(BufferManagerTest, readPageIntoFrame);
+    void readPageIntoFrame(uint64_t pageId, BufferFrame* frame );
     
     // Writes the page #frame back to disk. Assumes frame.pageId * pageSize
-    // is a valid offset inside the file
+    // is a valid offset inside the file (i.e. is an offset that is followed
+    // by at least one page)
     FRIEND_TEST(BufferManagerTest, flushFrameToFile);
     void flushFrameToFile(BufferFrame& frame);
 

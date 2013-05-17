@@ -124,6 +124,52 @@ TEST(BufferManagerTest, flushFrameToFile)
 }
 
 
+
+// _____________________________________________________________________________
+TEST(BufferManagerTest, readPageIntoFrame)
+{
+
+	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
+	FILE* testFile;
+ 	testFile = fopen ("testFile", "wb");
+ 	vector<char> aVec(constants::pageSize, 'a');
+ 	vector<char> bVec(constants::pageSize, 'b');
+ 	vector<char> cVec(constants::pageSize, 'c');
+
+	if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
+		(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
+		(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+		std::cout << "error writing to testFile" << endl;
+
+	fclose(testFile);
+
+	// Dummy BufferManager object	
+	BufferManager bm("testFile", 1);
+
+	for (int i = 0; i < 3; i++)
+	{
+		BufferFrame* bf = new BufferFrame();
+		bm.readPageIntoFrame(i, bf);
+		
+		ASSERT_TRUE(!bf->isDirty);
+		ASSERT_TRUE(bf->pageFixed);
+		
+		char* data = static_cast<char*>(bf->getData());
+		for (int j = 0; j < constants::pageSize; j++)
+		{
+			if (i == 0) ASSERT_EQ(data[j], 'a');
+			if (i == 1) ASSERT_EQ(data[i], 'b');
+			if (i == 2) ASSERT_EQ(data[i], 'c');			
+		}
+		delete bf;
+	}
+	
+	// Cleanup
+	if (system("rm testFile") < 0) 
+  		cout << "Error removing testFile" << endl;
+}
+
+
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);

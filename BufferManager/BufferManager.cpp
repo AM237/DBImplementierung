@@ -124,7 +124,7 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 
 
 //_____________________________________________________________________________
-void BufferManager::readPageInFrame(uint64_t pageId, BufferFrame* frame )
+void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 {
 
 	// Read page from file into main memory. 
@@ -199,7 +199,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		{
             twoQueues->pageFixedFirstTime(frame);
 			spaceFound = true;
-			readPageInFrame( pageId, frame );
+			readPageIntoFrame( pageId, frame );
 			break;		
 		}
 	}
@@ -216,7 +216,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
        	if (frame->getData() == NULL)//TODO no frame available
   		{
        		twoQueues->pageFixedFirstTime(frame);
-			readPageInFrame( pageId, frame );
+			readPageIntoFrame( pageId, frame );
 		}
 	}	
 }
