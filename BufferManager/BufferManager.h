@@ -64,6 +64,7 @@ public:
 private:
 
 	// Pointer to the page, which is of known size
+	FRIEND_TEST(BufferManagerTest, flushFrameToFile);
 	void* data;
 
 };
@@ -194,7 +195,9 @@ private:
 	// Reads page with pageID into frame
     void readPageInFrame(uint64_t pageId, BufferFrame* frame );
     
-    // Writes the page #frame back to disk
+    // Writes the page #frame back to disk. Assumes frame.pageId * pageSize
+    // is a valid offset inside the file
+    FRIEND_TEST(BufferManagerTest, flushFrameToFile);
     void flushFrameToFile(BufferFrame& frame);
 
 	// The number of frames to be managed

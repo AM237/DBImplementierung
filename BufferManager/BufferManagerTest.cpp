@@ -10,39 +10,18 @@
 
 using namespace std;
 
-// Test the construction process of the buffer manager
+// _____________________________________________________________________________
 TEST(BufferManagerTest, constructorDestructor)
 {
-
-	// Write a test file with 51 pages, pages 0, 3, 6 , ... is filled with 'a'
-	// pages 1, 4, 7, ... filled with 'b', and pages 2, 5, 8, .. filled with 'c'
-	// Note: file must be opened with O_RDWR flag, otherwise a bus error is
-	// possible	
+	// Write a test file with 50 pages
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
- 	for (unsigned i=0; i<51; i=i+3)
-    {
-		for(int j = 0; j < 4096; j++)
-		{
-			char x = 'a';
-			if (write(fileno(testFile), &x, sizeof(char)) < 0)
+   	vector<char> aVec(constants::pageSize, 'a');
+   	
+ 	for (unsigned i=0; i<50; i++)
+		if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0))			
 			std::cout << "error writing to testFile" << endl;
-		}
-		
-		for(int j = 0; j < 4096; j++)
-		{
-			char x = 'b';
-			if (write(fileno(testFile), &x, sizeof(char)) < 0) 
-			std::cout << "error writing to testFile" << endl;
-		}
-		
-		for(int j = 0; j < 4096; j++)
-		{
-			char x = 'c';
-			if (write(fileno(testFile), &x, sizeof(char)) < 0) 
-			std::cout << "error writing to testFile" << endl;
-		}	
-	}	
+			
 	fclose(testFile);
 	
 	// Construct BufferManager object with 10 BufferFrames
@@ -82,6 +61,64 @@ TEST(BufferManagerTest, constructorDestructor)
 	// Cleanup
 	delete bm;
 	
+	if (system("rm testFile") < 0) 
+  		cout << "Error removing testFile" << endl;
+}
+
+
+
+// _____________________________________________________________________________
+TEST(BufferManagerTest, flushFrameToFile)
+{
+
+	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
+	FILE* testFile;
+ 	testFile = fopen ("testFile", "wb");
+ 	vector<char> aVec(constants::pageSize, 'a');
+ 	vector<char> bVec(constants::pageSize, 'b');
+ 	vector<char> cVec(constants::pageSize, 'c');
+
+	if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
+		(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
+		(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+		std::cout << "error writing to testFile" << endl;
+
+	fclose(testFile);
+
+	// Dummy BufferManager object	
+	BufferManager bm("testFile", 1);
+	BufferFrame bf;
+
+	bf.pageId= 0;	
+	bf.data = cVec.data();
+	bm.flushFrameToFile(bf);
+	
+	bf.pageId = 1;
+	bf.data = aVec.data();
+	bm.flushFrameToFile(bf);
+	
+	bf.pageId = 2;
+	bf.data = bVec.data();
+	bm.flushFrameToFile(bf);
+	
+	testFile = fopen ("testFile", "rb");
+	for(int j = 0; j < 3; j++)
+	{
+		vector<char> input;
+		input.resize(constants::pageSize);
+		if (read(fileno(testFile), input.data(), constants::pageSize) < 0)
+		std::cout << "error reading from testFile" << endl;
+		
+		for (size_t i = 0; i < input.size(); i++)
+		{
+			if (j == 0) ASSERT_EQ(input[i], 'c');
+			if (j == 1) ASSERT_EQ(input[i], 'a');
+			if (j == 2) ASSERT_EQ(input[i], 'b');
+		}
+	}
+	fclose(testFile);
+	
+	// Cleanup
 	if (system("rm testFile") < 0) 
   		cout << "Error removing testFile" << endl;
 }

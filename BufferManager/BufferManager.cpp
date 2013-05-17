@@ -152,6 +152,27 @@ void BufferManager::readPageInFrame(uint64_t pageId, BufferFrame* frame )
 
 
 //_____________________________________________________________________________
+void BufferManager::flushFrameToFile(BufferFrame& frame)
+{
+	uint64_t pageId = frame.pageId;
+	
+	// seek to correct position in file
+	if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
+	{
+		cout << "Error seeking for page on disk" << endl;
+		exit(1);
+	}
+		
+	// write page
+	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
+	{
+		cout << "Error writing page back to disk (unfix)" << endl;
+		exit(1);
+	}
+}
+
+
+//_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
 	// Case: page with pageId is buffered -> return page directly
@@ -199,29 +220,6 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		}
 	}	
 }
-
-
-
-//_____________________________________________________________________________
-void BufferManager::flushFrameToFile(BufferFrame& frame)
-{
-	uint64_t pageId = frame.pageId;
-	
-	// seek to correct position in file
-	if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
-	{
-		cout << "Error seeking for page on disk" << endl;
-		exit(1);
-	}
-		
-	// write page
-	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
-	{
-		cout << "Error writing page back to disk (unfix)" << endl;
-		exit(1);
-	}
-}
-
 
 //_____________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
