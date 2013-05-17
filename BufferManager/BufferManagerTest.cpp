@@ -43,10 +43,14 @@ TEST(BufferManagerTest, constructorDestructor)
 		ASSERT_EQ(frameVec.size(), 0);
 	}
 	
+	/*
 	// TwoQueues
 	TwoQueues* tq = bm->twoQueues;
 	ASSERT_EQ(tq->fifo.size(), 0);
 	ASSERT_EQ(tq->lru.size(), 0);
+	*/
+	ASSERT_EQ(bm->fifo.size(), 0);
+	ASSERT_EQ(bm->lru.size(), 0);
 	
 	// BufferFrame pool
 	ASSERT_EQ(bm->framePool.size(), 10);

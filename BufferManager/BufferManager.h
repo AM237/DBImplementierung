@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdint.h>
 #include <list>
+#include <exception>
 #include <gtest/gtest.h>
 
 
@@ -26,9 +27,17 @@ namespace constants
 }
 
 // ***************************************************************************
-// Structs, templates, types
+// Structs, templates, types, exceptions, etc.
 // ***************************************************************************
 
+
+class ReplaceFail: public std::exception
+{
+  virtual const char* what() const throw()
+  {
+    return "BufferManager could not replace frame - all frames are fixed.";
+  }
+};
 
 
 // ***************************************************************************
@@ -41,6 +50,7 @@ namespace constants
 class BufferFrame
 {
 	friend class BufferManager;
+	//friend class TwoQueues;
 
 public:
 
@@ -70,7 +80,7 @@ private:
 };
 
 
-
+/*
 // 2Queues
 class TwoQueues
 {
@@ -95,10 +105,10 @@ private:
 	// The FIFO queue
 	std::list<BufferFrame*> fifo;
 	
-	// The FIFO queue
+	// The LRU queue
 	std::list<BufferFrame*>  lru;
 };
-
+*/
 
 
 
@@ -202,13 +212,23 @@ private:
     // by at least one page)
     FRIEND_TEST(BufferManagerTest, flushFrameToFile);
     void flushFrameToFile(BufferFrame& frame);
+    
+     // A page is fixed first time, added to Fifo queue
+    void pageFixedFirstTime(BufferFrame *frame);
+
+    // After page is fixed again and moved to LRU queue if in Fifo queue
+    void pageFixedAgain(BufferFrame *frame);
+	
+    // replace a Frame in the 2q, returns pointer to frame chosen for
+    // replacement
+    BufferFrame* replaceFrame();
 
 	// The number of frames to be managed
 	uint64_t numFrames;
 	
 	// Handler to file with pages on disk. The file is assumed to contain
 	// a multiple of constants::pageSize bytes. The pages
-	// are assumed to be numered 0 ... n.
+	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
 	
 	// The pool of buffer frames, is instantiated and filled
@@ -216,12 +236,16 @@ private:
 	std::vector<BufferFrame*> framePool;
 
 	// TwoQueues to manage replacements
-	TwoQueues* twoQueues;
+	//TwoQueues* twoQueues;
 	
 	// Hash proxy, supporting queries for pages given their id
 	BufferHasher* hasher;
 	
+	// The FIFO queue
+	std::list<BufferFrame*> fifo;
 	
+	// The LRU queue
+	std::list<BufferFrame*>  lru;
 };
 
 #endif  // BUFFERMANAGER_H
