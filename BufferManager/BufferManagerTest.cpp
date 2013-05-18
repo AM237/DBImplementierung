@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
+
 #include "BufferManager.h"
 
 using namespace std;
@@ -43,14 +44,12 @@ TEST(BufferManagerTest, constructorDestructor)
 		ASSERT_EQ(frameVec.size(), 0);
 	}
 	
-	/*
-	// TwoQueues
-	TwoQueues* tq = bm->twoQueues;
-	ASSERT_EQ(tq->fifo.size(), 0);
-	ASSERT_EQ(tq->lru.size(), 0);
-	*/
-	ASSERT_EQ(bm->fifo.size(), 0);
-	ASSERT_EQ(bm->lru.size(), 0);
+	
+	// Replacer
+	TwoQueueReplacer* replacer = (TwoQueueReplacer*)(bm->replacer);
+	ASSERT_EQ(replacer->fifo.size(), 0);
+	ASSERT_EQ(replacer->lru.size(), 0);
+	
 	
 	// BufferFrame pool
 	ASSERT_EQ(bm->framePool.size(), 10);
@@ -74,7 +73,6 @@ TEST(BufferManagerTest, constructorDestructor)
 // _____________________________________________________________________________
 TEST(BufferManagerTest, flushFrameToFile)
 {
-
 	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
@@ -132,7 +130,6 @@ TEST(BufferManagerTest, flushFrameToFile)
 // _____________________________________________________________________________
 TEST(BufferManagerTest, readPageIntoFrame)
 {
-
 	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
@@ -174,6 +171,7 @@ TEST(BufferManagerTest, readPageIntoFrame)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);

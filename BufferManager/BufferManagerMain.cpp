@@ -3,12 +3,12 @@
 // ExternalSortMain.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
-
-#include "BufferManager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <iostream>
+
+#include "BufferManager.h"
 
 using namespace std;
 
@@ -45,12 +45,7 @@ int main(int argc, char** argv)
 			default: printUsage();
 		}
 	}
-    
-    
-    /*
-    BufferManager bm("testFile", 10);
-    bm.fixPage(0, false);
-    */
+
     
   	return 0;
   	
