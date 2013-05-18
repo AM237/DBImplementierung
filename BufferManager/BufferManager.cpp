@@ -195,5 +195,5 @@ BufferManager::~BufferManager()
 	close(fileDescriptor);
 	
 	delete hasher;
-	//delete twoQueues;	
+	delete replacer;	
 }
