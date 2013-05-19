@@ -8,6 +8,8 @@
 #define BUFFERHASHER_H
 
 #include "BufferFrame.h"
+#include <pthread.h>
+
 
 // Lookup proxy component for external classes, keeps track of
 // pages / buffer frames in the page / frame pool.
@@ -22,11 +24,24 @@ public:
 	BufferHasher(uint64_t tableSize) 
 	{ 
 		size = tableSize;
+		lockVec = new std::vector<pthread_rwlock_t>(size);
 		for(unsigned int i = 0; i < size; i++)
 		{
 			std::vector<BufferFrame*> initial;
 			hashTable.push_back(initial);
+			
+			pthread_rwlock_t bucketLock;
+			lockVec->push_back(bucketLock);
+			
+			pthread_rwlock_init(&(lockVec->at(i)), NULL);
 		}
+	}
+	
+	~BufferHasher()
+	{
+		for (size_t i = 0; i < lockVec->size(); i++)
+			pthread_rwlock_destroy(&(lockVec->at(i)));
+		delete lockVec;
 	}
 
 	// Given a page id returns the index of the bucket in the
@@ -59,6 +74,8 @@ public:
 			}
 	}
 
+	// Manage concurrent access to hash table
+	std::vector<pthread_rwlock_t>* lockVec;
 
 private:
 
@@ -67,6 +84,8 @@ private:
 	// Hash table
 	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
 	std::vector< std::vector<BufferFrame*> > hashTable;
+	
+
 };
 
 

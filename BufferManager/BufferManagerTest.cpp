@@ -3,10 +3,6 @@
 // BufferManagerTest.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
-
-#include <gtest/gtest.h>
-#include <iostream>
-
 #include "BufferManager.h"
 
 using namespace std;
@@ -43,6 +39,10 @@ TEST(BufferManagerTest, constructor)
 		vector<BufferFrame*> frameVec = hasher->hashTable[i];
 		ASSERT_EQ(frameVec.size(), 0);
 	}
+	
+	// Test locking
+	pthread_rwlock_wrlock(&(hasher->lockVec->at(5)));
+	pthread_rwlock_unlock(&(hasher->lockVec->at(5)));
 	
 	// Replacer
 	TwoQueueReplacer* replacer = (TwoQueueReplacer*)(bm->replacer);
@@ -254,7 +254,7 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 		if (read(fileno(testFile), inputBuffer.data(), constants::pageSize) < 0)
 			cout << "Error reading from testFile";
 			
-		for (size_t j = 0; j < constants::pageSize; j++)
+		for (int j = 0; j < constants::pageSize; j++)
 			ASSERT_EQ(inputBuffer[j], 'd');
 	}
 	

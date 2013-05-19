@@ -7,10 +7,9 @@
 #ifndef FRAMEREPLACER_H
 #define FRAMEREPLACER_H
 
-#include <list>
 
 #include "FrameReplacer.h"
-
+#include <list>
 
 // Abstract class, represents a frame replacement strategy for BufferManager
 class FrameReplacer

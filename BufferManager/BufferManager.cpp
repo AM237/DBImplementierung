@@ -4,10 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
+#include "BufferManager.h"
 #include <fcntl.h>
 #include <sys/mman.h>
-
-#include "BufferManager.h"
 
 using namespace std;
 
@@ -96,6 +95,12 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
+	// Set locks on hash table bucket
+	if (exclusive)
+		pthread_rwlock_wrlock(&(hasher->lockVec->at(hasher->hash(pageId))));
+	else
+		pthread_rwlock_rdlock(&(hasher->lockVec->at(hasher->hash(pageId))));
+	
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
 	for (size_t i = 0; i < frames->size(); i++)
@@ -163,7 +168,11 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 			ReplaceFailFrameUnclean fail;
 			throw fail;
 		}
-	}	
+	}
+	
+	// Is never returned, because three cases above are mutually exclusive
+	BufferFrame* bf = new BufferFrame();
+	return *bf;
 }
 
 //_____________________________________________________________________________
@@ -188,6 +197,9 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	
 		// TODO
 	}
+	
+	// unlock lock on this frame's hash bucket
+	pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
 }
 
 //_____________________________________________________________________________

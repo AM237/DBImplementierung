@@ -7,9 +7,6 @@
 #ifndef BUFFERMANAGER_H
 #define BUFFERMANAGER_H
 
-#include <gtest/gtest.h>
-#include <pthread.h>
-
 #include "BufferFrame.h"
 #include "BufferHasher.h"
 #include "FrameReplacer.h"
@@ -57,8 +54,6 @@ class ReplaceFailNoFrameSuggested: public std::exception
   }
 };
 
-
-static pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
 
 
 // ***************************************************************************
