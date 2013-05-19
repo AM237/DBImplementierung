@@ -34,6 +34,7 @@ public:
 	virtual void pageFixedAgain(BufferFrame* frame)=0;
 	
 	// Returns a valid pointer to the frame that has been chosen for replacement
+	// The frame is cleaned of old data, the data pointer is set to NULL.
 	// Method fails (segfaults) if there are no unfixed frames available
 	// and all frames contain valid data
 	virtual BufferFrame* replaceFrame()=0;

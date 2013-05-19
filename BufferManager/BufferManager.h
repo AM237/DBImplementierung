@@ -31,13 +31,32 @@ namespace constants
 // ***************************************************************************
 
 
-class ReplaceFail: public std::exception
+class ReplaceFailAllFramesFixed: public std::exception
 {
   virtual const char* what() const throw()
   {
     return "BufferManager could not replace frame - all frames are fixed.";
   }
 };
+
+
+class ReplaceFailFrameUnclean: public std::exception
+{
+  virtual const char* what() const throw()
+  {
+    return "Suggested frame for replacement is not clean.";
+  }
+};
+
+
+class ReplaceFailNoFrameSuggested: public std::exception
+{
+  virtual const char* what() const throw()
+  {
+    return "No frame was suggested for replacement";
+  }
+};
+
 
 static pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
 
@@ -62,6 +81,7 @@ public:
 	// page will be held exclusively by this thread or not. The method can fail
 	// if no free frame is available and no used frame can be freed.
 	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
+	FRIEND_TEST(BufferManagerTest, fixUnfixPageWithReplace);
 	BufferFrame& fixPage(uint64_t pageId, bool exclusive);
 	
 	// Return a frame to the buffer manager indicating whether it is dirty or

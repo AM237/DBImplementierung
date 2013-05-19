@@ -71,7 +71,7 @@ TEST(BufferManagerTest, constructor)
 // _____________________________________________________________________________
 TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 {
-	// Write a test file with 50 pages
+	// Write a test file with 150 pages
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
  	vector<char> aVec(constants::pageSize, 'a');
@@ -90,9 +90,9 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	BufferManager* bm = new BufferManager("testFile", 10);
 	
 	// page contains 'b's, 'c's, and 'a's respectively
-	BufferFrame bFrame = bm->fixPage(1, false);
-	BufferFrame cFrame = bm->fixPage(5, false);
-	BufferFrame aFrame = bm->fixPage(9, false);
+	BufferFrame& bFrame = bm->fixPage(1, false);
+	BufferFrame& cFrame = bm->fixPage(5, false);
+	BufferFrame& aFrame = bm->fixPage(9, false);
 
 	// BufferFrame pool: only 3 pages initialized with data
 	int count = 0;
@@ -121,9 +121,9 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	ASSERT_EQ(replacer->lru.size(), 0);
 	
 	// Request additional (buffered) frames
-	BufferFrame cBufferedFrame = bm->fixPage(5, false);
-	BufferFrame newCFrame = bm->fixPage(11, false);
-	BufferFrame aBufferedFrame = bm->fixPage(9, false);
+	BufferFrame& cBufferedFrame = bm->fixPage(5, false);
+	BufferFrame& newCFrame = bm->fixPage(11, false);
+	BufferFrame& aBufferedFrame = bm->fixPage(9, false);
 	
 	// BufferHasher after: bucket for newCFrame has exactly two entries
 	ASSERT_EQ(hasher->hashTable[hasher->hash(1)].size(), 2);
@@ -143,7 +143,7 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	ASSERT_EQ(replacer->lru.size(), 2);
 	
 	// Request buffered frame that is in LRU, check that it is moved up.
-	BufferFrame aFrameFromLRU = bm->fixPage(9, false);
+	BufferFrame& aFrameFromLRU = bm->fixPage(9, false);
 	ASSERT_EQ(replacer->lru.front()->pageId, 9);
 	
 	// Check frame contents
@@ -165,7 +165,100 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	bm->fixPage(15, false);
 	bm->fixPage(16, false);
 	bm->fixPage(17, false);
-	ASSERT_THROW(bm->fixPage(18, false), ReplaceFail);
+	ASSERT_THROW(bm->fixPage(18, false), ReplaceFailAllFramesFixed);
+	
+	// Cleanup
+	delete bm;
+	
+	if (system("rm testFile") < 0) 
+  		cout << "Error removing testFile" << endl;
+}
+
+
+// _____________________________________________________________________________
+TEST(BufferManagerTest, fixUnfixPageWithReplace)
+{
+	// Write a test file with 150 pages
+	FILE* testFile;
+ 	testFile = fopen ("testFile", "wb");
+ 	vector<char> aVec(constants::pageSize, 'a');
+ 	vector<char> bVec(constants::pageSize, 'b');
+ 	vector<char> cVec(constants::pageSize, 'c');
+   	
+ 	for (unsigned i=0; i<50; i++)
+		if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
+			(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
+			(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+				std::cout << "error writing to testFile" << endl;
+			
+	fclose(testFile);
+	
+	// Construct BufferManager object with 10 BufferFrames
+	BufferManager* bm = new BufferManager("testFile", 3);
+	
+	// page contains 'a's, 'b's, and 'c's respectively
+	BufferFrame& aFrame = bm->fixPage(0, false);
+	BufferFrame& bFrame = bm->fixPage(1, false);
+	BufferFrame& cFrame = bm->fixPage(2, false);
+	
+	// buffer full and all pages fixed: should throw exception
+	ASSERT_THROW(bm->fixPage(3, false), ReplaceFailAllFramesFixed);
+		
+	// set candidate for replacement
+	bm->unfixPage(bFrame, false);
+	
+	// set new page to contain all 'a's
+	// buffer now contains pages 0, 3, 2
+	BufferFrame& secondAFrame = bm->fixPage(3, false);
+	for (int i = 0; i < constants::pageSize; i++)
+		ASSERT_EQ(((char*)secondAFrame.getData())[i], 'a');
+		
+	// buffer full and all pages fixed:
+	// should throw exception if new page requested
+	ASSERT_THROW(bm->fixPage(4, false), ReplaceFailAllFramesFixed);
+	bm->unfixPage(cFrame, false);
+	
+	// set new page to contain all 'a's
+	// buffer now contains pages 0, 3, 6
+	BufferFrame& thirdAFrame = bm->fixPage(6, false);
+	for (int i = 0; i < constants::pageSize; i++)
+		ASSERT_EQ(((char*)thirdAFrame.getData())[i], 'a');
+		
+	// Unfix pages: update data, then check contents on disk
+	for (int i = 0; i < constants::pageSize; i++)
+	{
+		
+		((char*)aFrame.getData())[i] = 'd';
+		((char*)secondAFrame.getData())[i] = 'd';
+		((char*)thirdAFrame.getData())[i] = 'd';	
+	}
+	
+	bm->unfixPage(aFrame, true);
+	bm->unfixPage(secondAFrame, true);
+	bm->unfixPage(thirdAFrame, true);
+	
+	testFile = fopen ("testFile", "rb");
+	
+	// pages to seek: 0, 3, 6
+	vector<int> seek = { 0, 3, 6 };
+	for (size_t i = 0; i < seek.size(); i++)
+	{
+		vector<char> inputBuffer;
+		inputBuffer.resize(constants::pageSize);
+		if (lseek(fileno(testFile), seek[i]*constants::pageSize, SEEK_SET) < 0)
+		{
+			cout << "Error seeking for page on disk" << endl;
+			exit(1);
+		}
+		
+		if (read(fileno(testFile), inputBuffer.data(), constants::pageSize) < 0)
+			cout << "Error reading from testFile";
+			
+		for (size_t j = 0; j < constants::pageSize; j++)
+			ASSERT_EQ(inputBuffer[j], 'd');
+	}
+	
+	fclose(testFile);
 	
 	// Cleanup
 	delete bm;

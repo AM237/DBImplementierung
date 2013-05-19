@@ -35,7 +35,7 @@ public:
 	bool pageFixed;
 
 	// A method giving access to the buffered page
-	void* getData() { return data; }
+	void*& getData() { return data; }
 
 private:
 

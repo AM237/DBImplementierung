@@ -130,28 +130,38 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 
 	// Case: page with pageId not buffered and buffer full
 	// -> use replacement strategy to replace an unfixed page in buffer
-	// and update the frame pool proxy (hash table) accordingly.
+	// and update the frame lookup mechanism (hash table) accordingly.
 	// If no pages can be replaced, method is allowed to fail (via exception,
 	// block, etc.)
     if(!spaceFound)
-    {   
+    {   	
     	// no pages can be replaced
     	if (allPagesFixed)
     	{
-    		ReplaceFail replFail;
-       	 	throw replFail;
+    		ReplaceFailAllFramesFixed fail;
+       	 	throw fail;
     	}
     	    	
        	BufferFrame* frame = replacer->replaceFrame();
+       	
+       	// should never be the case?
        	if (frame == NULL)
        	{
-			// TODO
+			ReplaceFailNoFrameSuggested fail;
+			throw fail;
        	}
        	
+       	// should always be the case
        	if (frame->getData() == NULL)
   		{
        		replacer->pageFixedFirstTime(frame);
 			readPageIntoFrame( pageId, frame );
+			return *frame;
+		
+		} else {
+			
+			ReplaceFailFrameUnclean fail;
+			throw fail;
 		}
 	}	
 }
@@ -159,11 +169,11 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 //_____________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 {
-	// Set the page as a candidate for replacement, consider
-	// whether to implement force or no force, and whether page is dirty or not
+	// Note: frame is a reference to an existing buffer frame in the pool.
+	// Therefore, it suffices to directly set the page as candidate for
+	// replacement.
 	frame.isDirty = isDirty;
 	frame.pageFixed = false;
-	
 	
 	// Write page back to disk if dirty, update dirty bit
 	if (isDirty)

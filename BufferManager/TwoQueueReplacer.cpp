@@ -50,8 +50,7 @@ void TwoQueueReplacer::pageFixedAgain(BufferFrame* frame)
 
 //_____________________________________________________________________________
 BufferFrame* TwoQueueReplacer::replaceFrame()
-{
-
+{	
 	std::list<BufferFrame*>::iterator it;
 	for(it=fifo.end(); it != fifo.begin(); --it)
 	{    
@@ -63,7 +62,7 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             // free data in frame, update frame lookup mechanism
             // note: since page in frame is unfixed, it is also clean, since
             // dirty pages are written back to disk when they are unfixed.
-            delete[] (char*)bf->data;
+            //delete[] (char*)bf->data;
             bf->data = NULL;
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;
@@ -78,7 +77,7 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 			lru.erase(it);
             
             // reset frame
-            delete[] (char*)bf->data;
+            //delete[] (char*)bf->data;
             bf->data = NULL;
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;
