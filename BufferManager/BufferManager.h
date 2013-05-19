@@ -8,7 +8,7 @@
 #define BUFFERMANAGER_H
 
 #include <gtest/gtest.h>
-
+#include <pthread.h>
 
 #include "BufferFrame.h"
 #include "BufferHasher.h"
@@ -39,6 +39,8 @@ class ReplaceFail: public std::exception
   }
 };
 
+static pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
+
 
 // ***************************************************************************
 // Core Classes
@@ -53,12 +55,13 @@ public:
 
 	// Creates a new instance that manages #size frames and operates on the
 	// file 'filename'
-	FRIEND_TEST(BufferManagerTest, constructorDestructor);
+	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferManager(const std::string& filename, uint64_t size);
 
 	// A method to retrieve frames given a page ID and indicating whether the
 	// page will be held exclusively by this thread or not. The method can fail
 	// if no free frame is available and no used frame can be freed.
+	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
 	BufferFrame& fixPage(uint64_t pageId, bool exclusive);
 	
 	// Return a frame to the buffer manager indicating whether it is dirty or
@@ -100,6 +103,7 @@ private:
 	// a multiple of constants::pageSize bytes. The pages
 	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
+	
 };
 
 #endif  // BUFFERMANAGER_H

@@ -33,7 +33,9 @@ public:
 	// buffered in a buffer frame.
 	virtual void pageFixedAgain(BufferFrame* frame)=0;
 	
-	// Returns a pointer to the frame that has been chosen for replacement.
+	// Returns a valid pointer to the frame that has been chosen for replacement
+	// Method fails (segfaults) if there are no unfixed frames available
+	// and all frames contain valid data
 	virtual BufferFrame* replaceFrame()=0;
 	
 
@@ -54,7 +56,7 @@ class TwoQueueReplacer : public FrameReplacer
 public:
 
 	// Constructor, destructor
-	FRIEND_TEST(BufferManagerTest, constructorDestructor);
+	FRIEND_TEST(BufferManagerTest, constructor);
 	TwoQueueReplacer(BufferHasher* hasher) : FrameReplacer(hasher) { }
 	~TwoQueueReplacer() { }
 	
@@ -69,7 +71,9 @@ public:
 	
 	
 private:
-
+	
+	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
+	
 	// The FIFO queue
 	std::list<BufferFrame*> fifo;
 	

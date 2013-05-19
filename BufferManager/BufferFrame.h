@@ -22,7 +22,7 @@ public:
 
 	// Constructor, initially points to no data. This is primary indicator
 	// whether the rest of the info in the object is valid or not.
-	FRIEND_TEST(BufferManagerTest, constructorDestructor);
+	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferFrame() { data = NULL; }
 
 	// The id of the page held in the frame.

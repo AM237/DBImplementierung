@@ -113,6 +113,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// between the pageId just read and the BufferFrame the data was read into
 	// in the hash table
 	bool spaceFound = false;
+	bool allPagesFixed = true;
 	for (size_t i = 0; i < framePool.size(); i++)
 	{
 		BufferFrame* frame = framePool.at(i);
@@ -121,8 +122,9 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
             replacer->pageFixedFirstTime(frame);
 			spaceFound = true;
 			readPageIntoFrame( pageId, frame );
-			break;		
+			return *frame;
 		}
+		if (!frame->pageFixed) allPagesFixed = false;
 	}
 	
 
@@ -131,17 +133,20 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// and update the frame pool proxy (hash table) accordingly.
 	// If no pages can be replaced, method is allowed to fail (via exception,
 	// block, etc.)
-    if(spaceFound==false)
-    {    
+    if(!spaceFound)
+    {   
+    	// no pages can be replaced
+    	if (allPagesFixed)
+    	{
+    		ReplaceFail replFail;
+       	 	throw replFail;
+    	}
+    	    	
        	BufferFrame* frame = replacer->replaceFrame();
-
-		// Every frame is fixed -> throw exception
        	if (frame == NULL)
        	{
-       		ReplaceFail replFail;
-       	 	throw replFail;
+			// TODO
        	}
-       	
        	
        	if (frame->getData() == NULL)
   		{
@@ -171,7 +176,7 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 		
 	} else {
 	
-		// ?
+		// TODO
 	}
 }
 
@@ -185,10 +190,10 @@ BufferManager::~BufferManager()
 		BufferFrame* frame = framePool[i];
 		if (frame->getData() != NULL && frame->isDirty)
 			flushFrameToFile(*frame);
-			
+										
 		// delete data in frame
-		delete[] (char*)frame->data;
-		delete frame;
+		//if (frame->getData() != NULL) delete[] (char*)frame->data;
+		if (frame != NULL) delete frame;
 	}
 	
 	// Close file with pages

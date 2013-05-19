@@ -18,7 +18,7 @@ class BufferHasher
 public:
 
 	// Constructor, defines how many buckets in the table
-	FRIEND_TEST(BufferManagerTest, constructorDestructor);
+	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferHasher(uint64_t tableSize) 
 	{ 
 		size = tableSize;
@@ -65,6 +65,7 @@ private:
 	uint64_t size;
 
 	// Hash table
+	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
 	std::vector< std::vector<BufferFrame*> > hashTable;
 };
 
