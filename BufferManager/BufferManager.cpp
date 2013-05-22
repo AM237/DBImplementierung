@@ -139,13 +139,17 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// If no pages can be replaced, method is allowed to fail (via exception,
 	// block, etc.)
     if(!spaceFound)
-    {   	
+    {   
+    	//cout << "no space found"<< endl;
+    	
     	// no pages can be replaced
     	if (allPagesFixed)
     	{
     		ReplaceFailAllFramesFixed fail;
        	 	throw fail;
     	}
+    	
+    	//cout << "not all pages fixed"<< endl;
     	    	
        	BufferFrame* frame = replacer->replaceFrame();
        	
