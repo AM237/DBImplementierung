@@ -95,6 +95,9 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
+
+	//pthread_rwlock_wrlock(&mylock);
+
 	// Set locks on hash table bucket
 	if (exclusive)
 		pthread_rwlock_wrlock(&(hasher->lockVec->at(hasher->hash(pageId))));
@@ -204,6 +207,7 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	
 	// unlock lock on this frame's hash bucket
 	pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
+	//pthread_rwlock_unlock(&mylock);
 }
 
 //_____________________________________________________________________________

@@ -55,6 +55,7 @@ class ReplaceFailNoFrameSuggested: public std::exception
 };
 
 
+//static pthread_rwlock_t mylock = PTHREAD_RWLOCK_INITIALIZER;
 
 // ***************************************************************************
 // Core Classes
