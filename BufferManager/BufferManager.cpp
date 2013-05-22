@@ -1,4 +1,3 @@
-
 ///////////////////////////////////////////////////////////////////////////////
 // BufferManager.cpp
 ///////////////////////////////////////////////////////////////////////////////
@@ -16,7 +15,7 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 {
 	// Initialize class fields
 	numFrames = size;
-	
+
 	// Open file with pages
   	fileDescriptor = open(filename.c_str(), O_RDWR);
   	if (fileDescriptor < 0)
@@ -33,7 +32,7 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 	// bucket, so the max. number of required buckets is that of the 
 	// manager's frame capacity
 	hasher = new BufferHasher(numFrames);
-	
+
 	// Initialize frame replacer
 	replacer = new TwoQueueReplacer(hasher);
 
@@ -53,19 +52,19 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 	char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
 					PROT_READ | PROT_WRITE, MAP_SHARED, fileDescriptor, 
 					pageId * constants::pageSize));				
-			
+
 	if (memLoc == MAP_FAILED)
 	{
 		cout << "Failed to read page into main memory" << endl;
 		exit(1);
 	}
-			
+
 	// Update frame info
 	frame->data = memLoc;
 	frame->isDirty = false;
 	frame->pageId = pageId;
 	frame->pageFixed = true;
-			
+
 	// Update frame pool proxy
 	hasher->insert(pageId, frame);
 }
@@ -75,14 +74,14 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 void BufferManager::flushFrameToFile(BufferFrame& frame)
 {
 	uint64_t pageId = frame.pageId;
-	
+
 	// seek to correct position in file
 	if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
 	{
 		cout << "Error seeking for page on disk" << endl;
 		exit(1);
 	}
-		
+
 	// write page
 	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
 	{
@@ -97,7 +96,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
 	//cout << "locking: " << pthread_self() << endl;
 	//pthread_mutex_lock( &lock );
-	lock.lock();
+	//lock.lock();
 	//pthread_rwlock_wrlock(&mylock);
 
 	// Set locks on hash table bucket
@@ -105,9 +104,9 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		pthread_rwlock_wrlock(&(hasher->lockVec->at(hasher->hash(pageId))));
 	else
 		pthread_rwlock_rdlock(&(hasher->lockVec->at(hasher->hash(pageId))));*/
-		
-		
-	
+
+
+
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
 	for (size_t i = 0; i < frames->size(); i++)
@@ -119,7 +118,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 			return *bf;
         }
 	}
-	
+
 	// Case: page with pageId not buffered and space available in buffer
 	// -> read from file into a free buffer frame, and add an association
 	// between the pageId just read and the BufferFrame the data was read into
@@ -138,7 +137,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		}
 		if (!frame->pageFixed) allPagesFixed = false;
 	}
-	
+
 
 	// Case: page with pageId not buffered and buffer full
 	// -> use replacement strategy to replace an unfixed page in buffer
@@ -169,14 +168,14 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
        		replacer->pageFixedFirstTime(frame);
 			readPageIntoFrame( pageId, frame );
 			return *frame;
-		
+
 		} else {
-			
+
 			ReplaceFailFrameUnclean fail;
 			throw fail;
 		}
 	}
-	
+
 	// Is never returned, because exactly one case above is true
 	BufferFrame* bf = new BufferFrame();
 	return *bf;
@@ -190,26 +189,26 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	// replacement.
 	frame.isDirty = isDirty;
 	frame.pageFixed = false;
-	
+
 	// Write page back to disk if dirty, update dirty bit
 	if (isDirty)
 	{
 		flushFrameToFile(frame);
-	
+
 		// Data on disk now corresponds to data in buffer, so frame is
 		// no longer dirty	
 		frame.isDirty = false;
-		
+
 	} else {
-	
+
 		// TODO
 	}
-	
+
 	// unlock lock on this frame's hash bucket
 	//pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
 	//pthread_rwlock_unlock(&mylock);
 	//cout << "unlocking: " << pthread_self() << endl;
-	lock.unlock();
+	//lock.unlock();
 	//pthread_mutex_unlock( &lock );
 }
 
@@ -223,15 +222,15 @@ BufferManager::~BufferManager()
 		BufferFrame* frame = framePool[i];
 		if (frame->getData() != NULL && frame->isDirty)
 			flushFrameToFile(*frame);
-										
+
 		// delete data in frame
 		//if (frame->getData() != NULL) delete[] (char*)frame->data;
 		if (frame != NULL) delete frame;
 	}
-	
+
 	// Close file with pages
 	close(fileDescriptor);
-	
+
 	delete hasher;
 	delete replacer;	
 }
