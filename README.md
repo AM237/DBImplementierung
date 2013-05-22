@@ -3,6 +3,16 @@ DBImplementierung
 
 Code Repository for the "Databases Implementation on Modern CPU Architectures" Lecture, SS 2013, TUM
 
+Project BufferManager
+
+1. BufferManagerMain contains the external test provided in the lecture site.
+
+2. 'make release' compiles source code and places executables (main and own unit tests) in Sort/bin.
+
+3. A sample (binary) data file has been provided in /bin. The BufferManager assumes the
+existence and correctness of this or any similar file.
+
+
 
 Project: Sort
 
