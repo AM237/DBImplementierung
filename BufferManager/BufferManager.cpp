@@ -95,14 +95,18 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
-
+	//cout << "locking: " << pthread_self() << endl;
+	//pthread_mutex_lock( &lock );
+	lock.lock();
 	//pthread_rwlock_wrlock(&mylock);
 
 	// Set locks on hash table bucket
-	if (exclusive)
+	/*if (exclusive)
 		pthread_rwlock_wrlock(&(hasher->lockVec->at(hasher->hash(pageId))));
 	else
-		pthread_rwlock_rdlock(&(hasher->lockVec->at(hasher->hash(pageId))));
+		pthread_rwlock_rdlock(&(hasher->lockVec->at(hasher->hash(pageId))));*/
+		
+		
 	
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
@@ -142,17 +146,13 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// If no pages can be replaced, method is allowed to fail (via exception,
 	// block, etc.)
     if(!spaceFound)
-    {   
-    	//cout << "no space found"<< endl;
-    	
+    {       	
     	// no pages can be replaced
     	if (allPagesFixed)
     	{
     		ReplaceFailAllFramesFixed fail;
        	 	throw fail;
     	}
-    	
-    	//cout << "not all pages fixed"<< endl;
     	    	
        	BufferFrame* frame = replacer->replaceFrame();
        	
@@ -177,7 +177,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		}
 	}
 	
-	// Is never returned, because three cases above are mutually exclusive
+	// Is never returned, because exactly one case above is true
 	BufferFrame* bf = new BufferFrame();
 	return *bf;
 }
@@ -206,8 +206,11 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	}
 	
 	// unlock lock on this frame's hash bucket
-	pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
+	//pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
 	//pthread_rwlock_unlock(&mylock);
+	//cout << "unlocking: " << pthread_self() << endl;
+	lock.unlock();
+	//pthread_mutex_unlock( &lock );
 }
 
 //_____________________________________________________________________________

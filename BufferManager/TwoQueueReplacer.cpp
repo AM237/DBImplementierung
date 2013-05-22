@@ -55,6 +55,10 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 	for(it=fifo.end(); it != fifo.begin(); --it)
 	{    
 		BufferFrame* bf = *it;
+		
+		if(bf == NULL)
+			continue;
+		
 		if (!bf->pageFixed)
 		{
             fifo.erase(it);
@@ -62,7 +66,6 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             // free data in frame, update frame lookup mechanism
             // note: since page in frame is unfixed, it is also clean, since
             // dirty pages are written back to disk when they are unfixed.
-            //delete[] (char*)bf->data;
             bf->data = NULL;
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;
@@ -72,12 +75,15 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 	for(it=lru.end(); it != lru.begin(); --it)
 	{    
 		BufferFrame* bf = *it;
+
+		if(bf == NULL)
+			continue;
+			
 		if (!bf->pageFixed)
 		{
 			lru.erase(it);
             
             // reset frame
-            //delete[] (char*)bf->data;
             bf->data = NULL;
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;

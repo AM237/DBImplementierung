@@ -10,6 +10,7 @@
 #include "BufferFrame.h"
 #include "BufferHasher.h"
 #include "FrameReplacer.h"
+#include <mutex>
 
 
 // ***************************************************************************
@@ -54,8 +55,6 @@ class ReplaceFailNoFrameSuggested: public std::exception
   }
 };
 
-
-//static pthread_rwlock_t mylock = PTHREAD_RWLOCK_INITIALIZER;
 
 // ***************************************************************************
 // Core Classes
@@ -119,6 +118,9 @@ private:
 	// a multiple of constants::pageSize bytes. The pages
 	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
+	
+	std::mutex lock;
+	//pthread_mutex_t lock;
 	
 };
 
