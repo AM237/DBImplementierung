@@ -3,6 +3,8 @@
 // BufferManagerTest.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
+// dd if=/dev/zero of=numData bs=1024 count=2048
+
 #include "BufferManager.h"
 
 using namespace std;
