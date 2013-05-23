@@ -55,7 +55,7 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 
 	if (memLoc == MAP_FAILED)
 	{
-		cout << "Failed to read page into main memory" << endl;
+		cout << "Failed to read page into main memory: " << errno << endl;
 		exit(1);
 	}
 
@@ -85,7 +85,7 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 	// write page
 	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
 	{
-		cout << "Error writing page back to disk (unfix)" << endl;
+		cout << "Error writing page back to disk:" << errno << endl;
 		exit(1);
 	}
 }
@@ -94,9 +94,9 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
-	//cout << "locking: " << pthread_self() << endl;
+	//cout << "locking: " << pageId << ", " << pthread_self() << endl;
 	//pthread_mutex_lock( &lock );
-	//lock.lock();
+ 	lock.lock();
 	//pthread_rwlock_wrlock(&mylock);
 
 	// Set locks on hash table bucket
@@ -184,6 +184,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 //_____________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 {
+
 	// Note: frame is a reference to an existing buffer frame in the pool.
 	// Therefore, it suffices to directly set the page as candidate for
 	// replacement.
@@ -207,8 +208,8 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	// unlock lock on this frame's hash bucket
 	//pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
 	//pthread_rwlock_unlock(&mylock);
-	//cout << "unlocking: " << pthread_self() << endl;
-	//lock.unlock();
+	//cout << "unlocking: " << frame.pageId << ", " << pthread_self() << endl;
+	lock.unlock();
 	//pthread_mutex_unlock( &lock );
 }
 

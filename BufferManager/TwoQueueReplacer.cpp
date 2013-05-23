@@ -7,8 +7,12 @@
 #include "BufferFrame.h"
 #include "BufferHasher.h"
 #include "FrameReplacer.h"
+#include "BufferManager.h"
+
+#include <sys/mman.h>
 
 using namespace std;
+using namespace constants;
 
 //_____________________________________________________________________________
 void TwoQueueReplacer::pageFixedFirstTime(BufferFrame* frame)
@@ -66,7 +70,14 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             // free data in frame, update frame lookup mechanism
             // note: since page in frame is unfixed, it is also clean, since
             // dirty pages are written back to disk when they are unfixed.
+            
+            if (munmap(bf->data, constants::pageSize) < 0)
+            {
+            	cout << "Failed unmapping main memory: " << errno << endl;
+				exit(1);            
+            }
             bf->data = NULL;
+            
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;
 		}
@@ -84,6 +95,11 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 			lru.erase(it);
             
             // reset frame
+            if (munmap(bf->data, constants::pageSize) < 0)
+            {
+            	cout << "Failed unmapping main memory: " << errno << endl;
+				exit(1);            
+            }
             bf->data = NULL;
             FrameReplacer::hasher->remove(bf->pageId);
 			return bf;
