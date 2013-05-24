@@ -47,8 +47,7 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 {
 
 	// Read page from file into main memory. 
-	// Page begins at pageId * pageSize bytes
-	// TODO: pointer goes out of scope?		
+	// Page begins at pageId * pageSize bytes	
 	char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
 					PROT_READ | PROT_WRITE, MAP_SHARED, fileDescriptor, 
 					pageId * constants::pageSize));				
@@ -94,19 +93,9 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 //_____________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
-	//cout << "locking: " << pageId << ", " << pthread_self() << endl;
-	//pthread_mutex_lock( &lock );
+
  	lock.lock();
-	//pthread_rwlock_wrlock(&mylock);
-
-	// Set locks on hash table bucket
-	/*if (exclusive)
-		pthread_rwlock_wrlock(&(hasher->lockVec->at(hasher->hash(pageId))));
-	else
-		pthread_rwlock_rdlock(&(hasher->lockVec->at(hasher->hash(pageId))));*/
-
-
-
+ 	
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
 	for (size_t i = 0; i < frames->size(); i++)
@@ -114,7 +103,11 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		BufferFrame* bf = frames->at(i);
 		if (bf->pageId == pageId)
         {
+        	//bf->lock.lock();
+        	
             replacer->pageFixedAgain(bf);
+
+			//ScopedLock scoped(lock);
 			return *bf;
         }
 	}
@@ -130,9 +123,13 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		BufferFrame* frame = framePool.at(i);
 		if (frame->getData() == NULL)
 		{
+			//frame->lock.lock();
+			
             replacer->pageFixedFirstTime(frame);
-			spaceFound = true;
 			readPageIntoFrame( pageId, frame );
+			spaceFound = true;
+		
+			//ScopedLock scoped(lock);
 			return *frame;
 		}
 		if (!frame->pageFixed) allPagesFixed = false;
@@ -165,8 +162,12 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
        	// should always be the case
        	if (frame->getData() == NULL)
   		{
+  			//frame->lock.lock();
+  			
        		replacer->pageFixedFirstTime(frame);
 			readPageIntoFrame( pageId, frame );
+		
+			//ScopedLock scoped(lock);
 			return *frame;
 
 		} else {
@@ -184,7 +185,8 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 //_____________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 {
-
+	//unfixlock.lock();
+	
 	// Note: frame is a reference to an existing buffer frame in the pool.
 	// Therefore, it suffices to directly set the page as candidate for
 	// replacement.
@@ -200,17 +202,12 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 		// no longer dirty	
 		frame.isDirty = false;
 
-	} else {
-
-		// TODO
 	}
 
-	// unlock lock on this frame's hash bucket
-	//pthread_rwlock_unlock(&(hasher->lockVec->at(hasher->hash(frame.pageId))));
-	//pthread_rwlock_unlock(&mylock);
-	//cout << "unlocking: " << frame.pageId << ", " << pthread_self() << endl;
+
+	//unfixlock.unlock();
+	//frame.lock.unlock();
 	lock.unlock();
-	//pthread_mutex_unlock( &lock );
 }
 
 //_____________________________________________________________________________
@@ -225,8 +222,16 @@ BufferManager::~BufferManager()
 			flushFrameToFile(*frame);
 
 		// delete data in frame
-		//if (frame->getData() != NULL) delete[] (char*)frame->data;
-		if (frame != NULL) delete frame;
+		if (frame != NULL)
+		{
+			if (munmap(frame->data, constants::pageSize) < 0)
+            {
+            	cout << "Destructor: failed unmapping main memory: " 
+            	     << errno << endl;
+				exit(1);            
+            }
+			delete frame;
+		}
 	}
 
 	// Close file with pages

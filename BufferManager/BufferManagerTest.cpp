@@ -43,8 +43,8 @@ TEST(BufferManagerTest, constructor)
 	}
 	
 	// Test locking
-	pthread_rwlock_wrlock(&(hasher->lockVec->at(5)));
-	pthread_rwlock_unlock(&(hasher->lockVec->at(5)));
+	//pthread_rwlock_wrlock(&(hasher->lockVec->at(5)));
+	//pthread_rwlock_unlock(&(hasher->lockVec->at(5)));
 	
 	// Replacer
 	TwoQueueReplacer* replacer = (TwoQueueReplacer*)(bm->replacer);

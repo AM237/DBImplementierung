@@ -8,6 +8,7 @@
 #define BUFFERFRAME_H
 
 #include <gtest/gtest.h>
+#include <mutex>
 
 
 // Class representing a buffer frame in the buffer manager
@@ -35,6 +36,7 @@ public:
 
 	// A method giving access to the buffered page
 	void* getData() { return data; }
+
 
 private:
 

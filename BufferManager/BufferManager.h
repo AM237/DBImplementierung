@@ -84,6 +84,7 @@ public:
 	// have to write it back immediately, but must not write it back before
 	// unfixPage is called.
 	void unfixPage(BufferFrame& frame, bool isDirty);
+
 	
 	// Destructor. Write all dirty frames to disk and free all resources.
 	~BufferManager();
@@ -120,8 +121,24 @@ private:
 	int fileDescriptor;
 	
 	std::mutex lock;
-	//pthread_mutex_t lock;
 	
+	std::mutex unfixlock;
+		
+};
+
+
+class ScopedLock
+{
+public:
+
+	ScopedLock(std::mutex& lock) : m(lock) { }
+	
+	~ScopedLock() {  m.unlock();  } 
+	
+private:
+	
+	std::mutex& m;
+
 };
 
 #endif  // BUFFERMANAGER_H
