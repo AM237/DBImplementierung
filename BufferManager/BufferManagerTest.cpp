@@ -93,11 +93,11 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// page contains 'b's, 'c's, and 'a's respectively
 	BufferFrame& bFrame = bm->fixPage(1, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& cFrame = bm->fixPage(5, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& aFrame = bm->fixPage(9, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 
 	// BufferFrame pool: only 3 pages initialized with data
 	int count = 0;
@@ -127,11 +127,11 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Request additional (buffered) frames
 	BufferFrame& cBufferedFrame = bm->fixPage(5, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& newCFrame = bm->fixPage(11, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& aBufferedFrame = bm->fixPage(9, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	
 	// BufferHasher after: bucket for newCFrame has exactly two entries
 	ASSERT_EQ(hasher->hashTable[hasher->hash(1)].size(), 2);
@@ -152,7 +152,7 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Request buffered frame that is in LRU, check that it is moved up.
 	BufferFrame& aFrameFromLRU = bm->fixPage(9, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	ASSERT_EQ(replacer->lru.front()->pageId, 9);
 	
 	// Check frame contents
@@ -169,19 +169,19 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Fill frame buffer pool, expect an exception to be thrown
 	bm->fixPage(12, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->fixPage(13, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->fixPage(14, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->fixPage(15, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->fixPage(16, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->fixPage(17, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	ASSERT_THROW(bm->fixPage(18, false), ReplaceFailAllFramesFixed);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	
 	// Cleanup
 	delete bm;
@@ -214,37 +214,37 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	
 	// page contains 'a's, 'b's, and 'c's respectively
 	BufferFrame& aFrame = bm->fixPage(0, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& bFrame = bm->fixPage(1, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	BufferFrame& cFrame = bm->fixPage(2, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	
 	// buffer full and all pages fixed: should throw exception
 	ASSERT_THROW(bm->fixPage(3, false), ReplaceFailAllFramesFixed);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 		
 	// set candidate for replacement
 	bm->unfixPage(bFrame, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	
 	// set new page to contain all 'a's
 	// buffer now contains pages 0, 3, 2
 	BufferFrame& secondAFrame = bm->fixPage(3, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	for (int i = 0; i < constants::pageSize; i++)
 		ASSERT_EQ(((char*)secondAFrame.getData())[i], 'a');
 		
 	// buffer full and all pages fixed:
 	// should throw exception if new page requested
 	ASSERT_THROW(bm->fixPage(4, false), ReplaceFailAllFramesFixed);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	bm->unfixPage(cFrame, false);
 	
 	// set new page to contain all 'a's
 	// buffer now contains pages 0, 3, 6
 	BufferFrame& thirdAFrame = bm->fixPage(6, false);
-	bm->lock.unlock();
+	pthread_rwlock_unlock(&(bm->lock));
 	for (int i = 0; i < constants::pageSize; i++)
 		ASSERT_EQ(((char*)thirdAFrame.getData())[i], 'a');
 		
@@ -258,11 +258,8 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	}
 	
 	bm->unfixPage(aFrame, true);
-	bm->lock.unlock();
 	bm->unfixPage(secondAFrame, true);
-	bm->lock.unlock();
 	bm->unfixPage(thirdAFrame, true);
-	bm->lock.unlock();
 	
 	testFile = fopen ("testFile", "rb");
 	

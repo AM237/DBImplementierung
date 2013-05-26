@@ -39,6 +39,8 @@ BufferManager::BufferManager(const string& filename, uint64_t size)
 	// Initialize buffer frame pool
 	for (unsigned int i = 0; i < size; i++)
 		framePool.push_back(new BufferFrame());
+		
+	lock = PTHREAD_RWLOCK_INITIALIZER;
 }
 
 
@@ -94,7 +96,8 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
 
- 	lock.lock();
+ 	if(exclusive) pthread_rwlock_wrlock(&lock);
+ 	else pthread_rwlock_wrlock(&lock);
  	
 	// Case: page with pageId is buffered -> return page directly
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
@@ -207,7 +210,8 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 
 	//unfixlock.unlock();
 	//frame.lock.unlock();
-	lock.unlock();
+	//lock.unlock();
+	pthread_rwlock_unlock(&lock);
 }
 
 //_____________________________________________________________________________

@@ -120,9 +120,10 @@ private:
 	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
 	
-	std::mutex lock;
 	
-	std::mutex unfixlock;
+	pthread_rwlock_t lock;
+	// std::mutex lock;
+	// std::mutex unfixlock;
 		
 };
 
