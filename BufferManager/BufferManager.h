@@ -22,6 +22,10 @@ namespace constants
 	// Page size should be a multiple of the size of a page in virtual memory
 	// const int pageSize = sysconf(_SC_PAGE_SIZE);
 	const int pageSize = 4096;
+	
+	// The default number of pages to write to file when initializing
+	// the database
+	const int defaultNumPages = 50;
 }
 
 // ***************************************************************************
@@ -56,6 +60,20 @@ class ReplaceFailNoFrameSuggested: public std::exception
 };
 
 
+// Implements RAII on a given lock
+class ScopedLock
+{
+public:
+
+	ScopedLock(std::mutex& lock) : m(lock) { }
+	~ScopedLock() {  m.unlock();  } 
+	
+private:
+	
+	std::mutex& m;
+};
+
+
 // ***************************************************************************
 // Core Classes
 // ***************************************************************************
@@ -70,8 +88,9 @@ public:
 	// Creates a new instance that manages #size frames and operates on the
 	// file 'filename'
 	FRIEND_TEST(BufferManagerTest, constructor);
-	BufferManager(const std::string& filename, uint64_t size);
-
+	BufferManager(const std::string& filename, uint64_t size, 
+				  int numPages=constants::defaultNumPages);
+	
 	// A method to retrieve frames given a page ID and indicating whether the
 	// page will be held exclusively by this thread or not. The method can fail
 	// if no free frame is available and no used frame can be freed.
@@ -102,6 +121,13 @@ private:
     FRIEND_TEST(BufferManagerTest, flushFrameToFile);
     void flushFrameToFile(BufferFrame& frame);
     
+   	// If no file with name = filename exists, create a file
+	// with #numPages initial pages. Returns file descriptor to database.
+	// No check forgoes all consistency checks, assumes file exists and uses
+	// it as is. This is useful for instance if data other than 8 byte integers
+	// are stored on file (see test cases)
+	int initializeDatabase(const char* filename, const int numPages);
+    
     // Manage page replacements
 	FrameReplacer* replacer;
 	
@@ -115,31 +141,16 @@ private:
 	// The number of frames to be managed
 	uint64_t numFrames;
 	
-	// Handler to file with pages on disk. The file is assumed to contain
-	// a multiple of constants::pageSize bytes. The pages
+	// Handler to file with pages on disk. At all times, the file is assumed 
+	// to contain a multiple of constants::pageSize bytes. The pages
 	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
-	
-	
-	pthread_rwlock_t lock;
-	// std::mutex lock;
+
+	// TODO	
+	//pthread_rwlock_t lock;
+	 std::mutex lock;
 	// std::mutex unfixlock;
 		
-};
-
-
-class ScopedLock
-{
-public:
-
-	ScopedLock(std::mutex& lock) : m(lock) { }
-	
-	~ScopedLock() {  m.unlock();  } 
-	
-private:
-	
-	std::mutex& m;
-
 };
 
 #endif  // BUFFERMANAGER_H

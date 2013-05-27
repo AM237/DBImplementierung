@@ -23,8 +23,8 @@ TEST(BufferManagerTest, constructor)
 			
 	fclose(testFile);
 	
-	// Construct BufferManager object with 10 BufferFrames
-	BufferManager* bm = new BufferManager("testFile", 10);
+	// Construct BufferManager object with 10 BufferFrames, managing 50 pages
+	BufferManager* bm = new BufferManager("testFile", 10, 50);
 	
 	// Fields
 	ASSERT_EQ(bm->numFrames, 10);
@@ -88,16 +88,19 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 			
 	fclose(testFile);
 	
-	// Construct BufferManager object with 10 BufferFrames
-	BufferManager* bm = new BufferManager("testFile", 10);
+	// Construct BufferManager object with 10 BufferFrames, managing 50 pages
+	BufferManager* bm = new BufferManager("testFile", 10, 50);
 	
 	// page contains 'b's, 'c's, and 'a's respectively
 	BufferFrame& bFrame = bm->fixPage(1, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& cFrame = bm->fixPage(5, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	// pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& aFrame = bm->fixPage(9, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 
 	// BufferFrame pool: only 3 pages initialized with data
 	int count = 0;
@@ -127,11 +130,14 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Request additional (buffered) frames
 	BufferFrame& cBufferedFrame = bm->fixPage(5, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& newCFrame = bm->fixPage(11, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& aBufferedFrame = bm->fixPage(9, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	
 	// BufferHasher after: bucket for newCFrame has exactly two entries
 	ASSERT_EQ(hasher->hashTable[hasher->hash(1)].size(), 2);
@@ -152,7 +158,8 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Request buffered frame that is in LRU, check that it is moved up.
 	BufferFrame& aFrameFromLRU = bm->fixPage(9, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	ASSERT_EQ(replacer->lru.front()->pageId, 9);
 	
 	// Check frame contents
@@ -169,19 +176,26 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	
 	// Fill frame buffer pool, expect an exception to be thrown
 	bm->fixPage(12, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->fixPage(13, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->fixPage(14, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->fixPage(15, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->fixPage(16, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->fixPage(17, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	ASSERT_THROW(bm->fixPage(18, false), ReplaceFailAllFramesFixed);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	
 	// Cleanup
 	delete bm;
@@ -209,49 +223,54 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 			
 	fclose(testFile);
 	
-	// Construct BufferManager object with 10 BufferFrames
-	BufferManager* bm = new BufferManager("testFile", 3);
+	// Construct BufferManager object with 3 BufferFrames, managing 150
+	BufferManager* bm = new BufferManager("testFile", 3, 150);
 	
 	// page contains 'a's, 'b's, and 'c's respectively
 	BufferFrame& aFrame = bm->fixPage(0, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& bFrame = bm->fixPage(1, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	BufferFrame& cFrame = bm->fixPage(2, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	
 	// buffer full and all pages fixed: should throw exception
 	ASSERT_THROW(bm->fixPage(3, false), ReplaceFailAllFramesFixed);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 		
 	// set candidate for replacement
 	bm->unfixPage(bFrame, false);
-	pthread_rwlock_unlock(&(bm->lock));
 	
 	// set new page to contain all 'a's
 	// buffer now contains pages 0, 3, 2
 	BufferFrame& secondAFrame = bm->fixPage(3, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	for (int i = 0; i < constants::pageSize; i++)
 		ASSERT_EQ(((char*)secondAFrame.getData())[i], 'a');
 		
 	// buffer full and all pages fixed:
 	// should throw exception if new page requested
 	ASSERT_THROW(bm->fixPage(4, false), ReplaceFailAllFramesFixed);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	bm->unfixPage(cFrame, false);
 	
 	// set new page to contain all 'a's
 	// buffer now contains pages 0, 3, 6
 	BufferFrame& thirdAFrame = bm->fixPage(6, false);
-	pthread_rwlock_unlock(&(bm->lock));
+	//pthread_rwlock_unlock(&(bm->lock));
+	bm->lock.unlock();
 	for (int i = 0; i < constants::pageSize; i++)
 		ASSERT_EQ(((char*)thirdAFrame.getData())[i], 'a');
 		
 	// Unfix pages: update data, then check contents on disk
 	for (int i = 0; i < constants::pageSize; i++)
 	{
-		
 		((char*)aFrame.getData())[i] = 'd';
 		((char*)secondAFrame.getData())[i] = 'd';
 		((char*)thirdAFrame.getData())[i] = 'd';	
@@ -311,7 +330,7 @@ TEST(BufferManagerTest, flushFrameToFile)
 	fclose(testFile);
 
 	// Dummy BufferManager object	
-	BufferManager bm("testFile", 1);
+	BufferManager bm("testFile", 1, 3);
 	BufferFrame bf;
 
 	bf.pageId= 0;	
@@ -368,7 +387,7 @@ TEST(BufferManagerTest, readPageIntoFrame)
 	fclose(testFile);
 
 	// Dummy BufferManager object	
-	BufferManager bm("testFile", 1);
+	BufferManager bm("testFile", 1, 3);
 
 	for (int i = 0; i < 3; i++)
 	{

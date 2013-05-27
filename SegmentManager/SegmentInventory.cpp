@@ -39,10 +39,10 @@ void SegmentInventory::initializeFromFile()
 {
 	// Read in information availabe in frame #0
 	vector<uint64_t> input;
-	input.resize(constants::pageSize);
+	input.resize(segconstants::pageSize);
 
 	if (lseek(fileDescriptor, 0, SEEK_SET) < 0 ||
-	    read(fileDescriptor, input.data(), constants::pageSize) < 0)
+	    read(fileDescriptor, input.data(), segconstants::pageSize) < 0)
 	{
 		cout << "Error initializing segment inventory from file" << endl;
 		exit(1);

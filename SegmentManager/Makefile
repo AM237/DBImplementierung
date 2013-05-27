@@ -1,27 +1,36 @@
 CXX = g++ -O3 -Wall -g -Wno-deprecated -std=c++0x
 MAIN_BINARIES = $(basename $(wildcard *Main.cpp))
 TEST_BINARIES = $(basename $(wildcard *Test.cpp))
-HEADER = $(wildcard *.h)
-OBJECTS = $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp))))
+OBJECTS = $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp) $(wildcard ../BufferManager/*.cpp))))
 MAIN_LIBS = #-pthread
 TEST_LIBS = -lgtest -lpthread
 DEBUG = -ggdb
 RELEASE = segmentmanager
+SUBDIRS = ../BufferManager/
+
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) compile -C $@
 
 all: clean compile test release
 
-compile: $(MAIN_BINARIES) $(TEST_BINARIES)
+compile: subdirs $(MAIN_BINARIES) $(TEST_BINARIES)
 
 test: $(TEST_BINARIES)
 	 for T in $(TEST_BINARIES); do ./$$T; done
 
-clean:
+clean: cleansubdirs
 	rm -f *\~
 	rm -f *.o
 	rm -f $(MAIN_BINARIES)
 	rm -f $(TEST_BINARIES)
 	rm -f *.class
 	rm -f core
+
+cleansubdirs:
+	for T in $(SUBDIRS); do cd $$T && make clean && cd ../; done
 	
 release: clean compile
 	mv $(MAIN_BINARIES) ./bin
@@ -39,3 +48,6 @@ release: clean compile
 
 %.o: %.cpp $(HEADER)
 	$(CXX) -c $<
+	
+# Phonys
+.PHONY: subdirs $(SUBDIRS)

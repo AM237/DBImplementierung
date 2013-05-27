@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-namespace constants
+namespace segconstants
 {
 	// Page size should be a multiple of the size of a page in virtual memory
 	// const int pageSize = sysconf(_SC_PAGE_SIZE);

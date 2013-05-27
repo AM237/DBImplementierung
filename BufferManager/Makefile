@@ -39,3 +39,6 @@ release: clean compile
 
 %.o: %.cpp $(HEADER)
 	$(CXX) -c $<
+
+# Do not delete object files (other units might need them for linking)	
+.PRECIOUS: %.o
