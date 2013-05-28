@@ -7,6 +7,7 @@
 #ifndef SEGMENTINVENTORY_H
 #define SEGMENTINVENTORY_H
 
+#include "../BufferManager/BufferManager.h"
 #include "Segment.h"
 #include <vector>
 
@@ -34,7 +35,7 @@ public:
 
 	// Constructor. Initializes this SegmentInventory by parsing the contents
 	// of the first page of the database into the respective data structures 
-	SegmentInventory(int fd, bool visible, uint64_t id);
+	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
 	
 	// Destructor
 	~SegmentInventory() { }	
@@ -49,12 +50,17 @@ private:
 	// The extents on these pages is formatted as follows:
 	// totalNumberOfEntries | segmentId | pageNoStart | pageNoEnd |
 	// nextSegmentId | nextPageNoStart | nextPageNoEnd | ....
+	// If there is no meaning data on file, extents are created and recorded
+	// for the segment and free space inventories.
 	void initializeFromFile();
 	
 	// Performs the inverse operation as above: encode data in the local
 	// data structures into an agreed format, and write this data to file, 
 	// (the first page in the sagement inventory is always page 0).
 	void writeToFile();
+
+	// Handler to the buffer manager	
+	BufferManager* bm;
 	
 	// Data structure designed to contain the parsed data from file
 	std::vector<InventoryEntry> entries;
@@ -65,9 +71,6 @@ private:
 	
 	// The total number of entries (see initializeFromFile) in the inventory
 	uint64_t numEntries;
-	
-	// Handler to the database file
-	int fileDescriptor;
 };
 
 

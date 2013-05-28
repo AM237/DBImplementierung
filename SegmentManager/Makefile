@@ -1,12 +1,12 @@
 CXX = g++ -O3 -Wall -g -Wno-deprecated -std=c++0x
 MAIN_BINARIES = $(basename $(wildcard *Main.cpp))
 TEST_BINARIES = $(basename $(wildcard *Test.cpp))
-OBJECTS = $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp) $(wildcard ../BufferManager/*.cpp))))
+SUBDIRS = ../BufferManager/
+OBJECTS = $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp) $(wildcard $(SUBDIRS)/*.cpp))))
 MAIN_LIBS = #-pthread
 TEST_LIBS = -lgtest -lpthread
 DEBUG = -ggdb
 RELEASE = segmentmanager
-SUBDIRS = ../BufferManager/
 
 
 subdirs: $(SUBDIRS)
@@ -37,7 +37,8 @@ release: clean compile
 	mv $(TEST_BINARIES) ./bin
 	mv ./bin/$(MAIN_BINARIES) ./bin/$(RELEASE)
 	mv ./bin/$(TEST_BINARIES) ./bin/$(RELEASE)_test
-
+	
+	
 # Dependent library files, if defined, may be needed AFTER the definition
 # of the object files, and not BEFORE ...
 %Main: %Main.o $(OBJECTS)
@@ -48,6 +49,9 @@ release: clean compile
 
 %.o: %.cpp $(HEADER)
 	$(CXX) -c $<
+	
+# Do not delete intermediate files, .o files in sub directories needed for linking	
+.SECONDARY: 
 	
 # Phonys
 .PHONY: subdirs $(SUBDIRS)

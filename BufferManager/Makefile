@@ -28,6 +28,9 @@ release: clean compile
 	mv $(TEST_BINARIES) ./bin
 	mv ./bin/$(MAIN_BINARIES) ./bin/$(RELEASE)
 	mv ./bin/$(TEST_BINARIES) ./bin/$(RELEASE)_test
+	
+# Do not delete object files (other units might need them for linking)	
+.SECONDARY: 
 
 # Dependent library files, if defined, may be needed AFTER the definition
 # of the object files, and not BEFORE ...
@@ -40,5 +43,4 @@ release: clean compile
 %.o: %.cpp $(HEADER)
 	$(CXX) -c $<
 
-# Do not delete object files (other units might need them for linking)	
-.PRECIOUS: %.o
+
