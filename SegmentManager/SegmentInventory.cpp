@@ -19,6 +19,13 @@ bool invEntryComp (InventoryEntry e1, InventoryEntry e2)
 	return (e1.segmentId < e2.segmentId); 
 }
 
+// Writes (copies) data from one array to another
+void writeToArray(uint64_t* from, void* to, int elems, int offset)
+{
+	for (int i = offset; i < offset+elems; i++)
+		reinterpret_cast<uint64_t*>(to)[i] = from[i];
+}
+
 // _____________________________________________________________________________
 SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id) 
                 : Segment(visible, id)
@@ -26,7 +33,6 @@ SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id)
 	nextId = 2;
 	this->bm = bm;
 	initializeFromFile();
-
 }
 
 // _____________________________________________________________________________
@@ -42,10 +48,21 @@ void SegmentInventory::initializeFromFile()
 	BufferFrame& bootFrame = bm->fixPage(0, true);
 	uint64_t numEntries = reinterpret_cast<uint64_t*>(bootFrame.getData())[0];
 	
-	// TODO
+	// File is yet to be initialized and contains no information
 	if (numEntries == 0)
 	{
-	
+		// Create base extents for the segment inventory and the free space
+		// inventory, write these values to the boot frame.		
+		// Format: 2 = #entries, 0 = seg inventory id, 0 = seg inv. start page,
+		// 0 = seg inv. end page, 1 = FSI id,
+		// 1 = FSI start page, 1 = FSI end page. 
+		vector<uint64_t> dir = { 2, 0, 0, 0, 
+		                            1, 1, 1};
+		                            
+		writeToArray(dir.data(), bootFrame.getData(), dir.size(), 0);
+		
+		// TODO: update data structures
+		return;
 	}
 	
 	// Each entry is composed of 3 unsigned integers, for a total of 24 bytes.
@@ -60,6 +77,8 @@ void SegmentInventory::initializeFromFile()
 		InventoryEntry entry(inv[i], inv[i+1], inv[i+2]);
 		entries.push_back(entry);
 	}
+	
+	bm->unfixPage(bootFrame, false);
 	
 	// Optimize for later searches, possibly with binary search or interpolation
 	sort(entries.begin(), entries.end(), invEntryComp);

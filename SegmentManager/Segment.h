@@ -10,14 +10,13 @@
 #include <stdint.h>
 
 namespace segconstants
-{
-	// Page size should be a multiple of the size of a page in virtual memory
-	// const int pageSize = sysconf(_SC_PAGE_SIZE);
-	const int pageSize = 4096;
-	
+{	
 	// Required for dynamic extent mapping, this is the exponential factor
 	// by which the size of extents increases every time a segment is grown.
 	const float extentIncrease = 1.2;
+	
+	// The size of a standard extent
+	const uint64_t baseExtentSize = 10;
 }
 
 
