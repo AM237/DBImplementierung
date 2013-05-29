@@ -21,7 +21,7 @@ public:
 	~FreeSpaceInventory() { }	
 
 	// override
-	void* nextPage();
+	uint64_t nextPage();
 	
 private:
 

@@ -17,9 +17,9 @@ FreeSpaceInventory::FreeSpaceInventory(int fd, bool visible, uint64_t id)
 }
 
 // _____________________________________________________________________________
-void* FreeSpaceInventory::nextPage()
+uint64_t FreeSpaceInventory::nextPage()
 {
 
-	return nullptr;
+	return 0;
 }
 

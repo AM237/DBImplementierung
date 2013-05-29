@@ -24,7 +24,7 @@ namespace segManConst
 	// by which the size of extents increases every time a segment is grown.
 	const float extentIncrease = 1.2;
 	
-	// The size of a standard extent
+	// The size of a base extent
 	const uint64_t baseExtentSize = 10;
 }
 

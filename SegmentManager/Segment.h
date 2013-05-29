@@ -8,6 +8,19 @@
 #define SEGMENT_H
 
 #include <stdint.h>
+#include <vector>
+
+
+// An object representing an extent in a segment
+struct Extent
+{
+public: 
+	Extent(uint64_t start, uint64_t end) : start(start), end(start) { }
+	
+	//uint64_t segmentId;
+	uint64_t start;
+	uint64_t end;
+};
 
 // Abstract class, represents a segment in the DBMS
 class Segment
@@ -33,15 +46,17 @@ public:
 	// Returns the size of this segment in frames	
 	uint64_t getSize() { return size; }
 
-	// Returns a pointer to a constants::pageSize data block, representing
-	// the next page in this segment's set of pages. Calling this method
+	// Returns the page id of the next page in the segment. Calling this method
 	// for the first time gives the first page of the segment, calling it twice
-	// gives the second page, and so on. Return value of nullptr indicates that
-	// no more pages are available.
-	virtual void* nextPage()=0;
+	// gives the second page, and so on. If no more pages are available, the
+	// id of the last available page is returned.
+	virtual uint64_t nextPage()=0;
 
 	
 protected:
+
+	// The extents (page boundaries) in this segment
+	std::vector<Extent> extents;
 
 	// Defines whether this segment is public or private
 	bool visible;
@@ -51,6 +66,9 @@ protected:
 	
 	// the size of this segment in pages
 	uint64_t size;
+	
+	// the current page in the segment
+	uint64_t currentPage;
 };
 
 #endif  // SEGMENT_H

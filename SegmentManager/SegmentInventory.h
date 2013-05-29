@@ -14,23 +14,12 @@
 
 
 
-// An object representing an entry in the segment inventory
-struct Extent
-{
-public: 
-	Extent(uint64_t start, uint64_t end) : start(start), end(start) { }
-	
-	//uint64_t segmentId;
-	uint64_t start;
-	uint64_t end;
-};
-
-
 // Comparison predicate for map
 struct classcomp {
-  bool operator() (const char& lhs, const char& rhs) const
+  bool operator() (const uint64_t& lhs, const uint64_t& rhs) const
   {return lhs<rhs;}
 };
+
 
 // The SegmentInventory is a collection of pages, always starting with page 0
 // in the database file, which maps segments to the locations of their extents
@@ -47,7 +36,7 @@ public:
 	~SegmentInventory() { }	
 
 	// override
-	void* nextPage();
+	uint64_t nextPage();
 	
 private:
 
@@ -67,17 +56,17 @@ private:
 	// If SI spans more than one page, this method is called recursively
 	// with the approriate buffer frame.
 	// 
-	// accu accumulates tuples of the form <0, x, y>, and counter
-	// decreases every time a tuple is read (should be initialized to
+	// counter decreases every time a tuple is read (should be initialized to
 	// the total number of tuples that make up the SI), so as to keep track
 	// of how much information is relevant on each page that is read.
 	void getSIExtents(std::vector<Extent>& accu, BufferFrame& frame, 
 	                  uint64_t& counter);
 	
-	// Performs the inverse operation as above: encode data in the local
-	// data structures into an agreed format, and write this data to file, 
-	// (the first page in the segment inventory is always page 0).
-	void writeToFile(BufferFrame& frame);
+	// Performs the inverse operation as above: look up data encoded in the
+	// class data structures, and write it to file. More specifically,
+	// look up the SI's extents to get the pages where the information is to be
+	// written.
+	void writeToFile();
 
 
 	// Handler to the buffer manager	
