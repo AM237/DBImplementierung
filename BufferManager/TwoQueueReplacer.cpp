@@ -24,10 +24,8 @@ void TwoQueueReplacer::pageFixedFirstTime(BufferFrame* frame)
 //_____________________________________________________________________________
 void TwoQueueReplacer::pageFixedAgain(BufferFrame* frame)
 {
-	std::list<BufferFrame*>::iterator it;
-
 	// frame is in FIFO queue, move to LRU queue
-	for(it=fifo.begin(); it != fifo.end(); ++it)
+	for(std::list<BufferFrame*>::iterator it=fifo.begin(); it!=fifo.end(); it++)
 	{    
 		BufferFrame* bf = *it;
 		if (bf == frame)
@@ -39,7 +37,7 @@ void TwoQueueReplacer::pageFixedAgain(BufferFrame* frame)
 	}
 
     // frame is in LRU queue, move to front of LRU queue
-	for(it=lru.begin(); it != lru.end(); ++it)
+	for(std::list<BufferFrame*>::iterator it=lru.begin(); it!=lru.end(); it++)
 	{    
 		BufferFrame* bf = *it;
 		if (bf == frame)
@@ -55,13 +53,12 @@ void TwoQueueReplacer::pageFixedAgain(BufferFrame* frame)
 //_____________________________________________________________________________
 BufferFrame* TwoQueueReplacer::replaceFrame()
 {	
-	std::list<BufferFrame*>::iterator it;
-	for(it=fifo.end(); it != fifo.begin(); --it)
-	{    
+	for(std::list<BufferFrame*>::iterator it=fifo.end(); it != fifo.begin(); )
+	{   
+		it--; 
 		BufferFrame* bf = *it;
 		
-		if(bf == NULL)
-			continue;
+		if(bf == NULL) continue;
 		
 		if (!bf->pageFixed)
 		{
@@ -70,7 +67,6 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             // free data in frame, update frame lookup mechanism
             // note: since page in frame is unfixed, it is also clean, since
             // dirty pages are written back to disk when they are unfixed.
-            
             if (munmap(bf->data, constants::pageSize) < 0)
             {
             	cout << "Failed unmapping main memory: " << errno << endl;
@@ -83,12 +79,12 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 		}
 	}
 
-	for(it=lru.end(); it != lru.begin(); --it)
-	{    
+	for(std::list<BufferFrame*>::iterator it=lru.end(); it != lru.begin(); )
+	{   
+		it--;
 		BufferFrame* bf = *it;
 
-		if(bf == NULL)
-			continue;
+		if(bf == NULL) continue;
 			
 		if (!bf->pageFixed)
 		{
