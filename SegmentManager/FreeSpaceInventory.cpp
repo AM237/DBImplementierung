@@ -9,17 +9,18 @@
 using namespace std;
 
 // _____________________________________________________________________________
-FreeSpaceInventory::FreeSpaceInventory(int fd, bool visible, uint64_t id) 
-                  : Segment(visible, id)
+FreeSpaceInventory::FreeSpaceInventory(bool visible, uint64_t id) 
+                   : Segment(visible, id)
 {
 
 
 }
 
+/*
 // _____________________________________________________________________________
 uint64_t FreeSpaceInventory::nextPage()
 {
 
 	return 0;
 }
-
+*/

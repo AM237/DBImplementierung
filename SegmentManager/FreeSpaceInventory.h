@@ -9,19 +9,21 @@
 
 #include "Segment.h"
 
-// The SegmentInventory is a collection of pages, always starting with page 0
-// in the database file, which maps segments to the locations of their extents
+// The FreeSpaceInventory is a special segment in the DBMS. It manages and
+// stores the free extents in the database. As with the SegmentInventory, it
+// also has the ability to materialize its state and initialize its state
+// from the database.
 class FreeSpaceInventory : public Segment
 {
 
 public:
 
 	// Constructor/destructor
-	FreeSpaceInventory(int fd, bool visible, uint64_t id);
+	FreeSpaceInventory(bool visible, uint64_t id);
 	~FreeSpaceInventory() { }	
 
 	// override
-	uint64_t nextPage();
+	//uint64_t nextPage();
 	
 private:
 

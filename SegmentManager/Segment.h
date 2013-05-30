@@ -9,9 +9,10 @@
 
 #include <stdint.h>
 #include <vector>
+#include <algorithm>
 
-
-// An object representing an extent in a segment
+// An object representing an extent in a segment.
+// Bound given as [start, end)
 struct Extent
 {
 public: 
@@ -25,14 +26,16 @@ public:
 // Abstract class, represents a segment in the DBMS
 class Segment
 {
+	friend class SegmentInventory;
 
 public:
 
 	// Constructor, destructor
-	Segment(bool visible, uint64_t id) 
+	Segment(bool visible, uint64_t id)
 	{ 
 		this->visible = visible; 
 		this->id = id;
+		this->nextPageCounter = 0;
 	}
 	
 	virtual ~Segment() { }
@@ -50,12 +53,32 @@ public:
 	// for the first time gives the first page of the segment, calling it twice
 	// gives the second page, and so on. If no more pages are available, the
 	// id of the last available page is returned.
-	virtual uint64_t nextPage()=0;
+	uint64_t nextPage()
+	{
+		std::vector<uint64_t> pages;
+	
+		// Get all extents, get pages from each extent and return next page
+		// in order (note: there should be no duplicates due to def. of extents)
+		for (size_t i = 0; i < extents.size(); i++)
+		{
+			Extent e = extents[i];
+			for(uint64_t j = e.start; j < e.end; j++)
+				pages.push_back(j);
+		}
+	
+		sort(pages.begin(), pages.end());
+		if (nextPageCounter >= pages.size())
+			return pages[pages.size()-1];
+	
+		uint64_t value = pages[nextPageCounter];
+		nextPageCounter++;
+		return value;	
+	}
 
 	
 protected:
 
-	// The extents (page boundaries) in this segment
+	// The extents in this segment
 	std::vector<Extent> extents;
 
 	// Defines whether this segment is public or private
@@ -67,8 +90,8 @@ protected:
 	// the size of this segment in pages
 	uint64_t size;
 	
-	// the current page in the segment
-	uint64_t currentPage;
+	// the number of times nextPage has been called on this segment
+	uint64_t nextPageCounter;
 };
 
 #endif  // SEGMENT_H
