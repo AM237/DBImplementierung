@@ -53,8 +53,9 @@ public:
 	// Method returns the page number of the first page of the new extent.
 	uint64_t growSegment(uint64_t segId);
 	
-	// Returns a reference to the segment with the given id	
-	Segment& retrieveSegmentById(uint64_t segId);
+	// Returns a pointer to the segment with the given id	
+	// If no such segment exists, a nullptr is returned
+	Segment* retrieveSegmentById(uint64_t segId);
 
 private:
 

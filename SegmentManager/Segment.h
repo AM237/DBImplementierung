@@ -11,17 +11,16 @@
 #include <vector>
 #include <algorithm>
 
-// An object representing an extent in a segment.
-// Bound given as [start, end)
+// An object representing an extent in a segment. Bound given as [start, end)
 struct Extent
 {
 public: 
 	Extent(uint64_t start, uint64_t end) : start(start), end(start) { }
-	
-	//uint64_t segmentId;
 	uint64_t start;
 	uint64_t end;
 };
+
+
 
 // Abstract class, represents a segment in the DBMS
 class Segment
@@ -69,14 +68,19 @@ public:
 		sort(pages.begin(), pages.end());
 		if (nextPageCounter >= pages.size())
 			return pages[pages.size()-1];
-	
-		uint64_t value = pages[nextPageCounter];
-		nextPageCounter++;
-		return value;	
+
+		return pages[nextPageCounter++];
 	}
 
 	
 protected:
+
+	// Writes (copies) data from one array to another
+	void writeToArray(uint64_t* from, void* to, int elems, int offset)
+	{
+		for (int i = offset; i < offset+elems; i++)
+			reinterpret_cast<uint64_t*>(to)[i] = from[i];
+	}
 
 	// The extents in this segment
 	std::vector<Extent> extents;

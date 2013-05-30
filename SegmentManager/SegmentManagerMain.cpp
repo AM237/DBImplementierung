@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+#include <vector>
 using namespace std;
 
 // Prints usage (parameters + options) of the program, and then exits
@@ -44,6 +45,5 @@ int main(int argc, char** argv)
 		}
 	}
 
-    	
   	return 0;
 }

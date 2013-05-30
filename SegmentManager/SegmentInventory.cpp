@@ -15,14 +15,6 @@
 
 using namespace std;
 
-
-// Writes (copies) data from one array to another
-void writeToArray(uint64_t* from, void* to, int elems, int offset)
-{
-	for (int i = offset; i < offset+elems; i++)
-		reinterpret_cast<uint64_t*>(to)[i] = from[i];
-}
-
 // _____________________________________________________________________________
 SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id) 
                 : Segment(visible, id)
@@ -37,6 +29,31 @@ SegmentInventory::~SegmentInventory()
 {
 	for (auto it=segments.begin(); it!=segments.end(); ++it)
 		delete it->second;
+}
+
+//______________________________________________________________________________
+bool SegmentInventory::registerSegment(Segment* seg)
+{
+	if (segments.find(seg->id) != segments.end()) return true;
+	
+	segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
+	return false;
+	
+	// TODO: grow SI? SI, FSI grow automatically, regular segments grow on demand?
+}
+
+//______________________________________________________________________________
+Segment* SegmentInventory::getSegment(uint64_t id)
+{
+	auto seg = segments.find(id);
+	if (seg == segments.end()) return nullptr;
+	return seg->second;
+}
+
+//______________________________________________________________________________
+uint64_t SegmentInventory::getNextId()
+{
+	return nextId++;
 }
 
 
@@ -85,6 +102,8 @@ void SegmentInventory::initializeFromFile()
 	// File is yet to be initialized and contains no information
 	if (numEntries == 0)
 	{
+		bm->unfixPage(bootFrame, false);
+		
 		// update data structures
 		size = 1;
 		nextId = 2;
@@ -94,7 +113,6 @@ void SegmentInventory::initializeFromFile()
 		
 		// reflect current state of data structures to file
 		writeToFile();
-		bm->unfixPage(bootFrame, true);
 		return;
 	}
 	
@@ -123,7 +141,7 @@ void SegmentInventory::initializeFromFile()
 		
 			Segment* newSeg = nullptr;
 			if (segId == 0) extents.push_back(it->second);
-			if (segId == 1) newSeg = new FreeSpaceInventory(false, segId);
+			if (segId == 1) newSeg = new FreeSpaceInventory(bm, false, segId);
 			else            newSeg = new RegularSegment(true, segId);
 			
 			if (newSeg != nullptr) 

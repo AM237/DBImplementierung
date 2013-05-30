@@ -32,11 +32,27 @@ public:
 
 	// Constructor. Initializes this SegmentInventory by materializing the data
 	// found initially on page 0 of the database into Segments in main memory,
-	// with their respectively defined extents
+	// with their respectively defined extents. See initializeFromFile
 	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
 	
 	// Destructor
 	~SegmentInventory();
+	
+	// Registers the given segment with the segment inventory.
+	// Takes place after the initialization of the inventory, that is to say,
+	// the data structures of the class already hold the dirty data that will 
+	// eventually be materialized to file.
+	// 
+	// Returns true iff segment already known to SI. In this case the method
+	// returns immediately
+	bool registerSegment(Segment* seg);
+	
+	// Returns the segment with the given id. If no such segment is found,
+	// nullptr is returned.
+	Segment* getSegment(uint64_t id);
+	
+	// Returns the next free segment id
+	uint64_t getNextId();
 	
 private:
 
