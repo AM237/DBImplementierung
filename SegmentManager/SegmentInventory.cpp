@@ -36,6 +36,7 @@ bool SegmentInventory::registerSegment(Segment* seg)
 {
 	if (segments.find(seg->id) != segments.end()) return true;
 	segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
+	numEntries=numEntries+seg->extents.size();
 	return false;
 }
 
@@ -44,6 +45,7 @@ bool SegmentInventory::unregisterSegment(Segment* seg)
 {
 	if (segments.find(seg->id) == segments.end()) return false;
 	segments.erase(seg->id);
+	numEntries=numEntries-seg->extents.size();
 	return true;
 }
 

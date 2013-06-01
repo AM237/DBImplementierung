@@ -79,10 +79,22 @@ Extent FreeSpaceInventory::getExtent(uint64_t numPages)
 	for (auto it= forwardMap.begin(); it!=forwardMap.end(); ++it)
 		if ((it->second - it->first) >= numPages)
 		{
-			Extent e(it->first, it->second);
+			Extent e(it->first, it->first + numPages);
 			
-			forwardMap.erase(it->first);
-			reverseMap.erase(it->second);
+			// Space required fills up an entire extent -> remove entire entry
+			if (e.end == it->second)
+			{
+				numEntries--;
+				forwardMap.erase(it->first);
+				reverseMap.erase(it->second);
+				return e;
+			}
+			
+			// Otherwise space required fills up only a portion of an available
+			// extent -> update data structures approriately and return extent
+			forwardMap.erase(e.start);
+			forwardMap.insert(pair<uint64_t, uint64_t>(e.end, it->second));
+			reverseMap.find(it->second)->second = e.end;
 
 			return e;
 		}
