@@ -27,6 +27,7 @@ struct comp {
 // a segment in the database, as well as initialize its state from that segment.
 class SegmentInventory : public Segment
 {
+	friend class SegmentManager;
 
 public:
 
@@ -44,8 +45,14 @@ public:
 	// eventually be materialized to file.
 	// 
 	// Returns true iff segment already known to SI. In this case the method
-	// returns immediately
+	// returns immediately. This method performs no checks on the extents
+	// of the given segment.
 	bool registerSegment(Segment* seg);
+	
+	// Unregisters the given segment with the segment inventory.
+	// Returns false iff segment not known to SI. In this case the method
+	// returns immediately.
+	bool unregisterSegment(Segment* seg);
 	
 	// Returns the segment with the given id. If no such segment is found,
 	// nullptr is returned.
@@ -66,6 +73,11 @@ private:
 	// an extent is created and recorded for the segment inventory.
 	void initializeFromFile();
 	
+	// Look up the SI's extents to get the pages where the information is to be
+	// written, and write tupels describing the mapping of segment ids to 
+	// extents (see initializeFromFile)
+	void writeToFile();
+	
 	// Accumulates tuples of the form <segmentId, pageStartNo, pageEndNo>
 	// on file and stores them in into a multimap
 	// If SI spans more than one page, this method is called recursively
@@ -76,12 +88,6 @@ private:
 	// of how much information is relevant on each page that is read.
 	void parseSIExtents(std::multimap<uint64_t, Extent, comp>& mapping, 
 	                    BufferFrame& frame, uint64_t& counter);
-	
-	// Performs the inverse operation as above: look up data encoded in the
-	// class data structures, and write it to file. More specifically,
-	// look up the SI's extents to get the pages where the information is to be
-	// written.
-	void writeToFile();
 
 	// Handler to the buffer manager	
 	BufferManager* bm;

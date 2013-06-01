@@ -17,7 +17,7 @@ using namespace std;
 
 // _____________________________________________________________________________
 SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id) 
-                : Segment(visible, id)
+                : Segment(true, visible, id)
 {
 	this->bm = bm;
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
@@ -26,7 +26,7 @@ SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id)
 
 // _____________________________________________________________________________
 SegmentInventory::~SegmentInventory()
-{
+{	
 	for (auto it=segments.begin(); it!=segments.end(); ++it)
 		delete it->second;
 }
@@ -35,11 +35,16 @@ SegmentInventory::~SegmentInventory()
 bool SegmentInventory::registerSegment(Segment* seg)
 {
 	if (segments.find(seg->id) != segments.end()) return true;
-	
 	segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
 	return false;
-	
-	// TODO: grow SI? SI, FSI grow automatically, regular segments grow on demand?
+}
+
+//______________________________________________________________________________
+bool SegmentInventory::unregisterSegment(Segment* seg)
+{
+	if (segments.find(seg->id) == segments.end()) return false;
+	segments.erase(seg->id);
+	return true;
 }
 
 //______________________________________________________________________________
@@ -68,12 +73,14 @@ void SegmentInventory::parseSIExtents(multimap<uint64_t, Extent, comp>& mapping,
 	for (unsigned int i = 1; i < 3*limit; i=i+3)
 	{
 		counter--;
+		uint64_t id = data[i];
 		
 		// Fill map of segment ids to extents
 		Extent ext(data[i+1], data[i+2]);
-		mapping.insert(pair<uint64_t, Extent>(data[i], ext));
+		mapping.insert(pair<uint64_t, Extent>(id, ext));
 		
-		if (data[i] == 0) exts.push_back(ext);
+		if (id == 0) exts.push_back(ext);
+		if (id >= nextId) nextId = id+1; 
 	}
 	
 	bm->unfixPage(frame, false);
@@ -105,7 +112,6 @@ void SegmentInventory::initializeFromFile()
 		bm->unfixPage(bootFrame, false);
 		
 		// update data structures
-		size = 1;
 		nextId = 2;
 		numEntries = 1;
 		Extent ext(0, 1);

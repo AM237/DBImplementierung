@@ -11,14 +11,86 @@ using namespace std;
 
 // _____________________________________________________________________________
 FreeSpaceInventory::FreeSpaceInventory(BufferManager* bm, bool visible,
-                    uint64_t id) : Segment(visible, id)
+                    uint64_t id) : Segment(true, visible, id)
 {
 	this->bm = bm;
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (2*sizeof(uint64_t));
 	initializeFromFile();
 }
 
+// _____________________________________________________________________________
+void FreeSpaceInventory::registerExtent(Extent e)
+{
+	if (e.end <= e.start)
+	{
+		cout << "Attempting to register an invalid extent: [" << e.start
+		     << ", " << e.end << ")" << endl;
+		exit(1);
+	}
+	
+	// The FSI contains a set of extents describing free pages.
+	// At all times, these extents do not overlap and describe maximal
+	// continuous regions (i.e. [1, 4) instead of [1, 3), [3, 4))
+	// Therefore, when marking a new extent as free, check three cases:
+	//
+	// 1. The extent starts where another free extent ends -> extend previous
+	// 2. The extent ends where another free extent begins -> extend into next
+	// 3. Otherwise just add this extent to the set of extents.
+	
+	auto endIt = reverseMap.find(e.start);
+	auto startIt = forwardMap.find(e.end);
+	uint64_t begin = e.start;
+	bool merge = false;
+	
+	if (endIt != reverseMap.end())
+	{
+		merge = true;
+		begin = endIt->second;
+		forwardMap.find(begin)->second = e.end;
+		reverseMap.insert(pair<uint64_t, uint64_t>(e.end, begin));
+		reverseMap.erase(endIt);
+	}
+	
+	else if (startIt != forwardMap.end())
+	{
+		uint64_t end = forwardMap.find(e.end)->second;
+		
+		if (merge) forwardMap.find(begin)->second = end;
+		else	   forwardMap.insert(pair<uint64_t, uint64_t>(begin, end)); 	   
+			
+		reverseMap.find(end)->second = begin;
+		forwardMap.erase(e.end);
+						
+		merge = true;
+	}
+	
+	// No merge with any other extent took place -> add new extent entry
+	else
+	{
+		numEntries++;
+		forwardMap.insert(pair<uint64_t, uint64_t>(e.start, e.end));
+		reverseMap.insert(pair<uint64_t, uint64_t>(e.end, e.start));
+	}
+}
 
+// _____________________________________________________________________________
+Extent FreeSpaceInventory::getExtent(uint64_t numPages)
+{
+	for (auto it= forwardMap.begin(); it!=forwardMap.end(); ++it)
+		if ((it->second - it->first) >= numPages)
+		{
+			Extent e(it->first, it->second);
+			
+			forwardMap.erase(it->first);
+			reverseMap.erase(it->second);
+
+			return e;
+		}
+
+
+	Extent e(0, 0);
+	return e;
+}
 
 // _____________________________________________________________________________
 void FreeSpaceInventory::initializeFromFile()
@@ -33,13 +105,13 @@ void FreeSpaceInventory::initializeFromFile()
 		bm->unfixPage(bootFrame, false);
 		
 		// update extent data
-		size = 1;
 		Extent ext(1, 2);
 		extents.push_back(ext);
 		
 		// page #2 is free
 		numEntries = 1;
-		freeSpace.insert(pair<uint64_t, uint64_t>(2, 3));
+		forwardMap.insert(pair<uint64_t, uint64_t>(2, 3));
+		reverseMap.insert(pair<uint64_t, uint64_t>(3, 2));
 		
 		// reflect current state of fsi to file
 		writeToFile();
@@ -48,7 +120,7 @@ void FreeSpaceInventory::initializeFromFile()
 	
 	
 	// File contains meaningful data -> the SI has already initialized the
-	// FSI and set its extents. Therefore, there is nothing else to do here.
+	// FSI and set its extents -> initialize mappings and other structures
 	else 
 	{
 		if (extents.size() == 0)
@@ -57,40 +129,17 @@ void FreeSpaceInventory::initializeFromFile()
 			     << "FSI has no defined extents" << endl;
 			exit(1);
 		}
+		
+		for (size_t i = 0; i < extents.size(); i++)
+		{
+			numEntries++;
+			Extent e = extents[i];
+			forwardMap.insert(pair<uint64_t, uint64_t>(e.start, e.end));
+			reverseMap.insert(pair<uint64_t, uint64_t>(e.end, e.start));
+		}
 	
 		return;
 	} 
-	
-	/*
-	uint64_t entryCounter = numEntries;
-	multimap<uint64_t, Extent, comp> mapping;
-	parseSIExtents(mapping, bootFrame, entryCounter);
-	
-	// Now that the mapping of segment ids to extents is complete, create and 
-	// store the actual segments   
-    for (auto it = mapping.begin(); it != mapping.end(); ++it )
-	{
-		// probe segment id, add extent if segment already stored, otherwise
-		// create new segment and store extent.
-		uint64_t segId = it->first;
-		auto segIt = segments.find(segId);
-		if (segIt != segments.end()) 
-			segIt->second->extents.push_back(it->second);
-			
-		else {
-		
-			Segment* newSeg = nullptr;
-			if (segId == 0) extents.push_back(it->second);
-			if (segId == 1) newSeg = new FreeSpaceInventory(false, segId);
-			else            newSeg = new RegularSegment(true, segId);
-			
-			if (newSeg != nullptr) 
-			{
-				newSeg->extents.push_back(it->second);
-				segments.insert(pair<uint64_t, Segment*>(segId, newSeg));
-			}
-		}
-	}*/
 }
 
 //______________________________________________________________________________
@@ -121,15 +170,12 @@ void FreeSpaceInventory::writeToFile()
 	uint64_t entryCounter = maxEntries;
 	
 	// Mark last iteration of the following outer loop
-	auto final_iter = freeSpace.end();
+	auto final_iter = forwardMap.end();
 	--final_iter;
 	
 	// Loop through all data to be written to file
-	for (auto it=freeSpace.begin(); it!=freeSpace.end(); ++it)
+	for (auto it=forwardMap.begin(); it!=forwardMap.end(); ++it)
 	{
-		uint64_t start = it->first;
-		uint64_t end = it->second;
-		
 		buffer.push_back(it->first);
 		buffer.push_back(it->second);
 	

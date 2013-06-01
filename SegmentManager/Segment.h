@@ -26,15 +26,18 @@ public:
 class Segment
 {
 	friend class SegmentInventory;
+	friend class SegmentManager;
 
 public:
 
 	// Constructor, destructor
-	Segment(bool visible, uint64_t id)
-	{ 
+	Segment(bool permanent, bool visible, uint64_t id)
+	{
+		this->permanent = permanent;
 		this->visible = visible; 
 		this->id = id;
 		this->nextPageCounter = 0;
+		this->growCounter = 0;
 	}
 	
 	virtual ~Segment() { }
@@ -46,7 +49,17 @@ public:
 	uint64_t getId() { return id; }
 	
 	// Returns the size of this segment in frames	
-	uint64_t getSize() { return size; }
+	uint64_t getSize()
+	{
+		uint64_t counter = 0;
+		for (size_t i = 0; i < extents.size(); i++)
+		{
+			Extent e = extents[i];
+			for(uint64_t j = e.start; j < e.end; j++)
+				counter++;
+		}
+		return counter;
+	}
 
 	// Returns the page id of the next page in the segment. Calling this method
 	// for the first time gives the first page of the segment, calling it twice
@@ -88,14 +101,18 @@ protected:
 	// Defines whether this segment is public or private
 	bool visible;
 	
+	// Defines whether this segment is permanent or not. Non permanent 
+	// segments are dropped at the end of the SegmentManager life cycle.
+	bool permanent;
+	
 	// Id of this segment
 	uint64_t id;
 	
-	// the size of this segment in pages
-	uint64_t size;
-	
 	// the number of times nextPage has been called on this segment
 	uint64_t nextPageCounter;
+	
+	// the number of times this segment has been grown.
+	uint64_t growCounter;
 };
 
 #endif  // SEGMENT_H

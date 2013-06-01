@@ -22,9 +22,19 @@ public:
 
 	// Constructor/destructor. Created by the SI when initializing from 
 	FreeSpaceInventory(BufferManager* bm, bool visible, uint64_t id);
-	~FreeSpaceInventory() { }	
+	~FreeSpaceInventory() { }
+	
+	// Give an extent to the FSI, which then incorporates its pages
+	// to the inventory of total free pages
+	void registerExtent(Extent e);
 
 	
+	// Returns an extent (page number limits) with #numPages. If none is
+	// currently available due to the size of the database, an extent with
+	// start = end is returned. Otherwise, this method unregisters the extent
+	// from the FSI.
+	Extent getExtent(uint64_t numPages);
+
 private:
 
 	// Initializes the free space mapping from the contents given on file
@@ -34,10 +44,11 @@ private:
 	// freeSpace in the following format: numEntries | start1 | end1 | start2 |
 	// end2 | ... etc.
 	void writeToFile();
-
+	
 	// Mapping of start of extent to end of extent, marking free space
 	// Free space is given on interval [start, end)
-	std::map<uint64_t, uint64_t> freeSpace;
+	std::map<uint64_t, uint64_t> forwardMap;
+	std::map<uint64_t, uint64_t> reverseMap;
 	
 	// Handler to the buffer manager
 	BufferManager* bm;

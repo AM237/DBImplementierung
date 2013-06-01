@@ -7,9 +7,9 @@
 #ifndef SEGMENTMANAGER_H
 #define SEGMENTMANAGER_H
 
+#include "../BufferManager/BufferManager.h"
 #include "SegmentInventory.h"
 #include "FreeSpaceInventory.h"
-#include "../BufferManager/BufferManager.h"
 
 #include <stdio.h>
 #include <string>
@@ -18,7 +18,7 @@
 namespace segManConst
 {
 	// Size of the buffer manager
-	uint64_t bufferSize = 100;
+	uint64_t bufferSize = 20;
 	
 	// Required for dynamic extent mapping, this is the exponential factor
 	// by which the size of extents increases every time a segment is grown.
@@ -43,7 +43,7 @@ public:
 	~SegmentManager();
 	
 	// Creates a new segment with one initial extent, and returns its id
-	uint64_t createSegment();
+	uint64_t createSegment(bool visible);
 	
 	// Drops the segment with the given id. The results in a change in the FSI,
 	// where the pages of the dropped segment are now recorded as being free.

@@ -90,6 +90,9 @@ public:
 	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferManager(const std::string& filename, uint64_t size, 
 				  int numPages=constants::defaultNumPages);
+				  
+	// Destructor. Write all dirty frames to disk and free all resources.
+	~BufferManager();
 	
 	// A method to retrieve frames given a page ID and indicating whether the
 	// page will be held exclusively by this thread or not. The method can fail
@@ -104,9 +107,11 @@ public:
 	// unfixPage is called.
 	void unfixPage(BufferFrame& frame, bool isDirty);
 
-	
-	// Destructor. Write all dirty frames to disk and free all resources.
-	~BufferManager();
+	// Appends #numPages worth of space to the end of the database file.
+	// Returns the page delimiters of the group of pages just created,
+	// in the form [start, end)
+	std::pair<uint64_t, uint64_t> growDB(uint64_t numPages);
+
                   
 private:
 	
@@ -123,10 +128,7 @@ private:
     
    	// If no file with name = filename exists, create a file
 	// with #numPages initial pages. Returns file descriptor to database.
-	// No check forgoes all consistency checks, assumes file exists and uses
-	// it as is. This is useful for instance if data other than 8 byte integers
-	// are stored on file (see test cases)
-	int initializeDatabase(const char* filename, const int numPages);
+	int initializeDatabase(const char* filename);
     
     // Manage page replacements
 	FrameReplacer* replacer;
@@ -140,6 +142,9 @@ private:
 
 	// The number of frames to be managed
 	uint64_t numFrames;
+	
+	// The number of pages on file
+	uint64_t numPages;
 	
 	// Handler to file with pages on disk. At all times, the file is assumed 
 	// to contain a multiple of constants::pageSize bytes. The pages

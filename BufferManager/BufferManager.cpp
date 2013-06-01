@@ -9,15 +9,16 @@
 
 using namespace std;
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
 BufferManager::BufferManager(const string& filename, uint64_t size, 
 							 const int pages)
 {
 	// Initialize class fields
 	numFrames = size;
+	numPages = pages;
 
 	// Open file with pages
-	fileDescriptor = initializeDatabase(filename.c_str(), pages);
+	fileDescriptor = initializeDatabase(filename.c_str());
  	
 	// Initialize hasher. In terms of the size of the underlying hash table,
 	// the worst case is given when each page is mapped to its own unique
@@ -37,7 +38,7 @@ BufferManager::BufferManager(const string& filename, uint64_t size,
 
 
 // _____________________________________________________________________________
-int BufferManager::initializeDatabase(const char* filename, const int numPages)
+int BufferManager::initializeDatabase(const char* filename)
 {	
 	FILE* dbFile = fopen(filename, "r");
  	
@@ -59,7 +60,7 @@ int BufferManager::initializeDatabase(const char* filename, const int numPages)
 			if (write(fileno(dbFile), pages.data(), 
 			    numPages*constants::pageSize) < 0)
 			{
-				cout << "Error creating database file (writing):"<<errno <<endl;
+				cout <<"Error creating database file (writing): "<<errno <<endl;
 				exit(1);
 			}
 		
@@ -79,11 +80,11 @@ int BufferManager::initializeDatabase(const char* filename, const int numPages)
 
 		if (lseek(fileno(dbFile), 0, SEEK_END) < 0)
 		{
-			cout << "Error seeking to end of file " << endl;
+			cout << "Error seeking to end of file: " << errno << endl;
 			exit(1);
 		}
 		
-		int fileBytes = ftell(dbFile);
+		uint64_t fileBytes = ftell(dbFile);
 
 		if (fileBytes % constants::pageSize != 0 ||
 		    fileBytes < numPages * constants::pageSize)
@@ -95,7 +96,7 @@ int BufferManager::initializeDatabase(const char* filename, const int numPages)
 		
 			if (lseek(fileno(dbFile), 0, SEEK_SET) < 0)
 		    {
-				cout << "Error seeking to start of file" << endl;
+				cout << "Error seeking to start of file: " << errno << endl;
 				exit(1);
 			}
 		}
@@ -107,7 +108,7 @@ int BufferManager::initializeDatabase(const char* filename, const int numPages)
   	int fd = open(filename, O_RDWR);
   	if (fd < 0)
   	{
-  		cout << "Error opening file on disk" << endl;
+  		cout << "Error opening file on disk: " << errno << endl;
   		exit(1);
   	}
   	
@@ -115,7 +116,35 @@ int BufferManager::initializeDatabase(const char* filename, const int numPages)
 }
 
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
+std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
+{
+	uint64_t sizeBefore = numPages;
+	
+	// seek to end of file
+	if (lseek(fileDescriptor, 0, SEEK_END) < 0)
+	{
+		cout << "Error seeking to end of file: " << errno << endl;
+		exit(1);
+	}
+
+	// write page
+	vector<uint64_t> pageData;
+	uint64_t totalBytes = pages*constants::pageSize;
+	pageData.resize(totalBytes/sizeof(uint64_t), 0);
+	if (write(fileDescriptor, pageData.data(), totalBytes) < 0)
+	{
+		cout << "Error appending pages to file: " << errno << endl;
+		exit(1);
+	}
+	numPages += pages;
+	
+	uint64_t sizeAfter = numPages;
+	return pair<uint64_t, uint64_t>(sizeBefore, sizeAfter);
+}
+
+
+//______________________________________________________________________________
 void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 {
 
@@ -142,7 +171,7 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 }
 
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
 void BufferManager::flushFrameToFile(BufferFrame& frame)
 {
 	uint64_t pageId = frame.pageId;
@@ -163,7 +192,7 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 }
 
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 {
 
@@ -255,7 +284,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	return *bf;
 }
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 {
 	//unfixlock.lock();
@@ -284,7 +313,7 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 	//pthread_rwlock_unlock(&lock);
 }
 
-//_____________________________________________________________________________
+//______________________________________________________________________________
 BufferManager::~BufferManager()
 {	
 	// Write all dirty frames to disk + clean main memory
