@@ -70,7 +70,46 @@ void FreeSpaceInventory::registerExtent(Extent e)
 		numEntries++;
 		forwardMap.insert(pair<uint64_t, uint64_t>(e.start, e.end));
 		reverseMap.insert(pair<uint64_t, uint64_t>(e.end, e.start));
+		
+		// grow segment if necessary
+		if (maxEntries * getSize() <= numEntries)
+		{
+			grow();
+			
+			// TODO: register with SI
+			//registerSegment(seg);
+		}	
 	}
+}
+
+// _____________________________________________________________________________
+void FreeSpaceInventory::grow()
+{	
+	/*
+	// Grow segment according to dynamic extent mapping.
+	// See SegmentManager::growSegment
+	float numExtents = extents.size();
+	uint64_t newExtentSize = ceil(pow(2, 
+	                         	  pow(params.extentIncrease, numExtents)));
+	
+	// Request an extent with required capacity   	
+	Extent e = getExtent(newExtentSize);
+	
+	// If no such extent found, then the size of the database file must be
+	// increased to accomodate space for the new extent
+	if (e.start == e.end)
+	{
+		pair<uint64_t, uint64_t> growth = bm->growDB(newExtentSize);
+		Extent grownExtent(growth.first, growth.second);
+		registerExtent(grownExtent);
+		grow();
+	}
+	
+	else
+	{
+		// e has already been unregistered from the FSI
+		extents.push_back(e);
+	}*/
 }
 
 // _____________________________________________________________________________

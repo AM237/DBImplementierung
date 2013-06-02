@@ -35,8 +35,22 @@ SegmentInventory::~SegmentInventory()
 bool SegmentInventory::registerSegment(Segment* seg)
 {
 	if (segments.find(seg->id) != segments.end()) return true;
-	segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
-	numEntries=numEntries+seg->extents.size();
+	
+	// This is the only time that numEntries for the SI increases.
+	// Make sure that the extents the SI currently holds can hold this amount
+	// of entries, otherwise grow the SI.	
+	if (maxEntries * getSize() <= (numEntries+seg->extents.size()))
+	{
+		grow();
+		registerSegment(seg);
+	}
+	
+	else
+	{
+		segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
+		numEntries=numEntries+seg->extents.size();
+	}
+	
 	return false;
 }
 
@@ -61,6 +75,42 @@ Segment* SegmentInventory::getSegment(uint64_t id)
 uint64_t SegmentInventory::getNextId()
 {
 	return nextId++;
+}
+
+//______________________________________________________________________________
+void SegmentInventory::grow()
+{
+	auto fsi = (FreeSpaceInventory*)getSegment(1);
+	if (fsi == nullptr)
+	{
+		cout << "Error: SI cannot find FSI " << endl;
+		exit(1);
+	}
+	
+	// Grow segment according to dynamic extent mapping.
+	// See SegmentManager::growSegment
+	float numExtents = extents.size();
+	uint64_t newExtentSize = ceil(pow(2, 
+	                         	  pow(params.extentIncrease, numExtents)));
+	
+	// Request an extent with required capacity   	
+	Extent e = fsi->getExtent(newExtentSize);
+	
+	// If no such extent found, then the size of the database file must be
+	// increased to accomodate space for the new extent
+	if (e.start == e.end)
+	{
+		pair<uint64_t, uint64_t> growth = bm->growDB(newExtentSize);
+		Extent grownExtent(growth.first, growth.second);
+		fsi->registerExtent(grownExtent);
+		grow();
+	}
+	
+	else
+	{
+		// e has already been unregistered from the FSI
+		extents.push_back(e);
+	}
 }
 
 

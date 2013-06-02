@@ -11,6 +11,7 @@
 #include <vector>
 #include <algorithm>
 
+
 // An object representing an extent in a segment. Bound given as [start, end)
 struct Extent
 {
@@ -19,7 +20,6 @@ public:
 	uint64_t start;
 	uint64_t end;
 };
-
 
 
 // Abstract class, represents a segment in the DBMS

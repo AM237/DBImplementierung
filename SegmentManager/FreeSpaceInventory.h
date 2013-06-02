@@ -9,6 +9,7 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "Segment.h"
+#include "SegManConst.h"
 #include <map>
 
 // The FreeSpaceInventory is a special segment in the DBMS. It manages and
@@ -28,7 +29,6 @@ public:
 	// to the inventory of total free pages
 	void registerExtent(Extent e);
 
-	
 	// Returns an extent (page number limits) with #numPages. If none is
 	// currently available due to the size of the database, an extent with
 	// start = end is returned. Otherwise, this method unregisters the extent
@@ -45,6 +45,10 @@ private:
 	// end2 | ... etc.
 	void writeToFile();
 	
+	// Adds an additional extent to the FSI. Whereas regular segments are grown 
+	// on demand (see SegmentManager::growSegment), the FSI grows automatically.    
+	void grow();
+	
 	// Mapping of start of extent to end of extent, marking free space
 	// Free space is given on interval [start, end)
 	std::map<uint64_t, uint64_t> forwardMap;
@@ -52,6 +56,9 @@ private:
 	
 	// Handler to the buffer manager
 	BufferManager* bm;
+	
+	// Segment manager parameters
+	SegManConst params;
 	
 	// Number of [start, end) entries managed by the FreeSpaceInventory
 	uint64_t numEntries;

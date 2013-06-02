@@ -9,10 +9,12 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "RegularSegment.h"
+#include "SegManConst.h"
+
 #include <unordered_map>
 #include <unordered_set>
-#include <map>
 #include <vector>
+#include <map>
 
 
 // Comparison predicate for map
@@ -88,9 +90,16 @@ private:
 	// of how much information is relevant on each page that is read.
 	void parseSIExtents(std::multimap<uint64_t, Extent, comp>& mapping, 
 	                    BufferFrame& frame, uint64_t& counter);
+	
+	// Adds an extent to the SI. Whereas regular segments are grown on demand
+	// (see SegmentManager::growSegment), the SI grows automatically.    
+	void grow();
 
 	// Handler to the buffer manager	
 	BufferManager* bm;
+	
+	// Segment manager parameters
+	SegManConst params;
 	
 	// Data structure mapping a segment id to a segment
 	std::map<uint64_t, Segment*> segments;

@@ -10,25 +10,10 @@
 #include "../BufferManager/BufferManager.h"
 #include "SegmentInventory.h"
 #include "FreeSpaceInventory.h"
+#include "SegManConst.h"
 
 #include <stdio.h>
 #include <string>
-
-
-namespace segManConst
-{
-	// Size of the buffer manager
-	uint64_t bufferSize = 20;
-	
-	// Required for dynamic extent mapping, this is the exponential factor
-	// by which the size of extents increases every time a segment is grown.
-	const float extentIncrease = 1.2;
-	
-	// The size of a base extent
-	const uint64_t baseExtentSize = 10;
-}
-
-
 
 
 // Provides basic functions operating on segments, such as create, drop, grow
@@ -68,6 +53,9 @@ private:
 	
 	// BufferManager handler
 	BufferManager* bm;
+	
+	// Segment manager parameters
+	SegManConst params;
 };
 
 

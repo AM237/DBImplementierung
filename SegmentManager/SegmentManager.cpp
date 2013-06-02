@@ -17,7 +17,7 @@ SegmentManager::SegmentManager(const string& filename)
 {
 	// Start with three pages, one page for the segment inventory,
 	// one page for the space inventory, and one free page
-	bm = new BufferManager(filename, segManConst::bufferSize, 3);
+	bm = new BufferManager(filename, params.bufferSize, 3);
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
 	segInv = new SegmentInventory(bm, false, 0);
@@ -64,7 +64,7 @@ Segment* SegmentManager::retrieveSegmentById(uint64_t segId)
 uint64_t SegmentManager::createSegment(bool visible)
 {	
 	// See if there is a free extent available with sufficient pages
-	uint64_t base = segManConst::baseExtentSize;
+	uint64_t base = params.baseExtentSize;
 	Extent e = spaceInv->getExtent(base);
 	
 	// If no such extent found, then the size of the database file must be
@@ -97,7 +97,14 @@ uint64_t SegmentManager::createSegment(bool visible)
 // _____________________________________________________________________________
 uint64_t SegmentManager::growSegment(uint64_t segId)
 {
-	// TODO: SI, FSI grow automatically -> modify writeToFile
+	// Only regular segments grow on demand
+	if (segId < 2)
+	{
+		cout << "Cannot explicitly grow SI, FSI: "
+		     << "these segments grow automatically" << endl;
+		exit(1);
+		
+	}
 	Segment* toGrow = retrieveSegmentById(segId);
 	if (toGrow == nullptr)
 	{
@@ -112,8 +119,8 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 	// growth constant. Therefore, the extent that will be added now will have
 	// size b^(k^(n))
 	float numExtents = toGrow->extents.size();
-	uint64_t newExtentSize = pow(segManConst::baseExtentSize, 
-	                         	 pow(segManConst::extentIncrease, numExtents));
+	uint64_t newExtentSize = ceil(pow(params.baseExtentSize, 
+	                         	  pow(params.extentIncrease,numExtents)));
 	
 	// Request an extent with required capacity   	
 	Extent e = spaceInv->getExtent(newExtentSize);
