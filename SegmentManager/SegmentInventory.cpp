@@ -32,38 +32,6 @@ SegmentInventory::~SegmentInventory()
 }
 
 //______________________________________________________________________________
-bool SegmentInventory::registerSegment(Segment* seg)
-{
-	if (segments.find(seg->id) != segments.end()) return true;
-	
-	// This is the only time that numEntries for the SI increases.
-	// Make sure that the extents the SI currently holds can hold this amount
-	// of entries, otherwise grow the SI.	
-	if (maxEntries * getSize() <= (numEntries+seg->extents.size()))
-	{
-		grow();
-		registerSegment(seg);
-	}
-	
-	else
-	{
-		segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
-		numEntries=numEntries+seg->extents.size();
-	}
-	
-	return false;
-}
-
-//______________________________________________________________________________
-bool SegmentInventory::unregisterSegment(Segment* seg)
-{
-	if (segments.find(seg->id) == segments.end()) return false;
-	segments.erase(seg->id);
-	numEntries=numEntries-seg->extents.size();
-	return true;
-}
-
-//______________________________________________________________________________
 Segment* SegmentInventory::getSegment(uint64_t id)
 {
 	auto seg = segments.find(id);
@@ -76,6 +44,49 @@ uint64_t SegmentInventory::getNextId()
 {
 	return nextId++;
 }
+
+//______________________________________________________________________________
+bool SegmentInventory::unregisterSegment(Segment* seg)
+{
+	// Note: this method does not affect the SI's extents.
+	// After dropping a segment, there could be an underflow in an SI extent.
+	// This however is irrelevant, since the SI only grows when all of its
+	// extents are unable to hold more data (see notifySegGrowth)
+	if (segments.find(seg->id) == segments.end()) return false;
+	segments.erase(seg->id);
+	numEntries=numEntries-seg->extents.size();
+	return true;
+}
+
+//______________________________________________________________________________
+bool SegmentInventory::registerSegment(Segment* seg)
+{
+	if (segments.find(seg->id) != segments.end()) return true;
+	
+	// This is the only instance that numEntries for the SI increases.
+	// Make sure that the extents the SI currently holds can hold this amount
+	// of entries, otherwise grow the SI.
+	segments.insert(pair<uint64_t, Segment*>(seg->id, seg));
+	notifySegGrowth(seg->id, seg->extents.size());
+	return false;
+}
+
+
+//______________________________________________________________________________
+void SegmentInventory::notifySegGrowth(uint64_t id, uint64_t growth)
+{
+	if (segments.find(id) == segments.end())
+	{
+		cout << "Growth reported for non existent segment with id " <<id<<endl;
+		exit(1);
+	}
+	
+	// If max entries per page * num pages is not enough to hold the growth
+	while (maxEntries * getSize() <= (numEntries+growth)) grow();	
+	
+	numEntries=numEntries+growth;
+}
+
 
 //______________________________________________________________________________
 void SegmentInventory::grow()
@@ -103,14 +114,11 @@ void SegmentInventory::grow()
 		pair<uint64_t, uint64_t> growth = bm->growDB(newExtentSize);
 		Extent grownExtent(growth.first, growth.second);
 		fsi->registerExtent(grownExtent);
-		grow();
+		e = fsi->getExtent(newExtentSize);
 	}
 	
-	else
-	{
-		// e has already been unregistered from the FSI
-		extents.push_back(e);
-	}
+	// e has already been unregistered from the FSI in getExtent
+	extents.push_back(e);
 }
 
 
@@ -199,7 +207,7 @@ void SegmentInventory::initializeFromFile()
 		
 			Segment* newSeg = nullptr;
 			if (segId == 0) extents.push_back(it->second);
-			if (segId == 1) newSeg = new FreeSpaceInventory(bm, false, segId);
+			if (segId == 1) newSeg = new FreeSpaceInventory(this, bm, false, segId);
 			else            newSeg = new RegularSegment(true, segId);
 			
 			if (newSeg != nullptr) 

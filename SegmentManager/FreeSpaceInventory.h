@@ -8,7 +8,7 @@
 #define FREESPACEINVENTORY_H
 
 #include "../BufferManager/BufferManager.h"
-#include "Segment.h"
+#include "SegmentInventory.h"
 #include "SegManConst.h"
 #include <map>
 
@@ -22,7 +22,8 @@ class FreeSpaceInventory : public Segment
 public:
 
 	// Constructor/destructor. Created by the SI when initializing from 
-	FreeSpaceInventory(BufferManager* bm, bool visible, uint64_t id);
+	FreeSpaceInventory(SegmentInventory* si, BufferManager* bm, 
+	                   bool visible, uint64_t id);
 	~FreeSpaceInventory() { }
 	
 	// Give an extent to the FSI, which then incorporates its pages
@@ -53,6 +54,9 @@ private:
 	// Free space is given on interval [start, end)
 	std::map<uint64_t, uint64_t> forwardMap;
 	std::map<uint64_t, uint64_t> reverseMap;
+	
+	// Handler to the segment inventory
+	SegmentInventory* si;
 	
 	// Handler to the buffer manager
 	BufferManager* bm;

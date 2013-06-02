@@ -60,6 +60,11 @@ public:
 	// nullptr is returned.
 	Segment* getSegment(uint64_t id);
 	
+	// Notifies the SI that the given segment has grown by the given offset.
+	// This allows the SI to allocate a new extent for itself if not enough
+	// space is available to log all the extents of the newly grown segment. 
+	void notifySegGrowth(uint64_t id, uint64_t offset);
+	
 	// Returns the next free segment id
 	uint64_t getNextId();
 	

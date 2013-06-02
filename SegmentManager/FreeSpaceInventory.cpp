@@ -10,9 +10,11 @@
 using namespace std;
 
 // _____________________________________________________________________________
-FreeSpaceInventory::FreeSpaceInventory(BufferManager* bm, bool visible,
-                    uint64_t id) : Segment(true, visible, id)
+FreeSpaceInventory::FreeSpaceInventory(SegmentInventory* si, 
+                                       BufferManager* bm, bool visible,
+                                       uint64_t id) : Segment(true, visible, id)
 {
+	this->si = si;
 	this->bm = bm;
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (2*sizeof(uint64_t));
 	initializeFromFile();
@@ -51,7 +53,7 @@ void FreeSpaceInventory::registerExtent(Extent e)
 		reverseMap.erase(endIt);
 	}
 	
-	else if (startIt != forwardMap.end())
+	if (startIt != forwardMap.end())
 	{
 		uint64_t end = forwardMap.find(e.end)->second;
 		
@@ -64,52 +66,33 @@ void FreeSpaceInventory::registerExtent(Extent e)
 		merge = true;
 	}
 	
-	// No merge with any other extent took place -> add new extent entry
-	else
+	// No merge with any other extent took place -> add new extent entry.
+	// Note: this is the only instance where numEntries is increased in the FSI
+	if (!merge)
 	{
 		numEntries++;
 		forwardMap.insert(pair<uint64_t, uint64_t>(e.start, e.end));
 		reverseMap.insert(pair<uint64_t, uint64_t>(e.end, e.start));
 		
 		// grow segment if necessary
-		if (maxEntries * getSize() <= numEntries)
-		{
-			grow();
-			
-			// TODO: register with SI
-			//registerSegment(seg);
-		}	
+		if (maxEntries * getSize() <= numEntries) grow();
 	}
 }
 
 // _____________________________________________________________________________
 void FreeSpaceInventory::grow()
 {	
-	/*
 	// Grow segment according to dynamic extent mapping.
 	// See SegmentManager::growSegment
 	float numExtents = extents.size();
 	uint64_t newExtentSize = ceil(pow(2, 
 	                         	  pow(params.extentIncrease, numExtents)));
 	
-	// Request an extent with required capacity   	
-	Extent e = getExtent(newExtentSize);
-	
-	// If no such extent found, then the size of the database file must be
-	// increased to accomodate space for the new extent
-	if (e.start == e.end)
-	{
-		pair<uint64_t, uint64_t> growth = bm->growDB(newExtentSize);
-		Extent grownExtent(growth.first, growth.second);
-		registerExtent(grownExtent);
-		grow();
-	}
-	
-	else
-	{
-		// e has already been unregistered from the FSI
-		extents.push_back(e);
-	}*/
+	// Get an extent that is known to be clean -> allocate new set of pages	
+	pair<uint64_t, uint64_t> growth = bm->growDB(newExtentSize);
+	Extent e(growth.first, growth.second);
+	extents.push_back(e);
+	si->notifySegGrowth(1, 1);
 }
 
 // _____________________________________________________________________________

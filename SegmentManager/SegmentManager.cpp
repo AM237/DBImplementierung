@@ -21,7 +21,7 @@ SegmentManager::SegmentManager(const string& filename)
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
 	segInv = new SegmentInventory(bm, false, 0);
-	spaceInv = new FreeSpaceInventory(bm, false, 1);
+	spaceInv = new FreeSpaceInventory(segInv, bm, false, 1);
 	bool found = segInv->registerSegment(spaceInv);
 	
 	// If the FSI was already registered to the SI, it means that meaningful
@@ -105,6 +105,7 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 		exit(1);
 		
 	}
+	
 	Segment* toGrow = retrieveSegmentById(segId);
 	if (toGrow == nullptr)
 	{
@@ -139,6 +140,9 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 	{
 		// e has already been unregistered from the FSI
 		toGrow->extents.push_back(e);
+		
+		// Notify the SI that this segment has grown
+		segInv->notifySegGrowth(toGrow->id, 1);
 		return e.start;
 	}
 	
