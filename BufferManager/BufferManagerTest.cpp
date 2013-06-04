@@ -178,7 +178,6 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	//pthread_rwlock_unlock(&(bm->lock));
 	bm->lock.unlock();
 	for (int i = 0; i < constants::pageSize; i++)
-
 		ASSERT_EQ(((char*)thirdAFrame.getData())[i], 'a');
 		
 	// Unfix pages: update data, then check contents on disk

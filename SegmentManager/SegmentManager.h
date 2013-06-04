@@ -24,6 +24,7 @@ class SegmentManager
 public:
 
 	// Constructor, destructor
+	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	SegmentManager(const std::string& filename);
 	~SegmentManager();
 	

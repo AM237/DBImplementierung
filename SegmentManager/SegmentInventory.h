@@ -11,6 +11,7 @@
 #include "RegularSegment.h"
 #include "SegManConst.h"
 
+#include <gtest/gtest.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -36,6 +37,7 @@ public:
 	// Constructor. Initializes this SegmentInventory by materializing the data
 	// found initially on page 0 of the database into Segments in main memory,
 	// with their respectively defined extents. See initializeFromFile
+	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
 	
 	// Destructor

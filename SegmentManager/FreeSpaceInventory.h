@@ -22,6 +22,7 @@ class FreeSpaceInventory : public Segment
 public:
 
 	// Constructor/destructor. Created by the SI when initializing from 
+	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FreeSpaceInventory(SegmentInventory* si, BufferManager* bm, 
 	                   bool visible, uint64_t id);
 	~FreeSpaceInventory() { }

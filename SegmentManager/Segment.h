@@ -7,6 +7,7 @@
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
+#include <gtest/gtest.h>
 #include <stdint.h>
 #include <vector>
 #include <algorithm>
@@ -16,7 +17,7 @@
 struct Extent
 {
 public: 
-	Extent(uint64_t start, uint64_t end) : start(start), end(start) { }
+	Extent(uint64_t start, uint64_t end) : start(start), end(end) { }
 	uint64_t start;
 	uint64_t end;
 };
@@ -31,13 +32,13 @@ class Segment
 public:
 
 	// Constructor, destructor
+	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	Segment(bool permanent, bool visible, uint64_t id)
 	{
 		this->permanent = permanent;
 		this->visible = visible; 
 		this->id = id;
 		this->nextPageCounter = 0;
-		this->growCounter = 0;
 	}
 	
 	virtual ~Segment() { }
@@ -110,9 +111,6 @@ protected:
 	
 	// the number of times nextPage has been called on this segment
 	uint64_t nextPageCounter;
-	
-	// the number of times this segment has been grown.
-	uint64_t growCounter;
 };
 
 #endif  // SEGMENT_H

@@ -18,8 +18,8 @@ using namespace std;
 // _____________________________________________________________________________
 SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id) 
                 : Segment(true, visible, id)
-{
-	this->bm = bm;
+{	
+	this->bm = bm;	
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
 	initializeFromFile();
 }
@@ -83,7 +83,6 @@ void SegmentInventory::notifySegGrowth(uint64_t id, uint64_t growth)
 	
 	// If max entries per page * num pages is not enough to hold the growth
 	while (maxEntries * getSize() <= (numEntries+growth)) grow();	
-	
 	numEntries=numEntries+growth;
 }
 
@@ -161,14 +160,14 @@ void SegmentInventory::parseSIExtents(multimap<uint64_t, Extent, comp>& mapping,
 
 // _____________________________________________________________________________
 void SegmentInventory::initializeFromFile()
-{
+{	
 	// Read in information available starting in frame #0
-	BufferFrame& bootFrame = bm->fixPage(0, true);
+	BufferFrame& bootFrame = bm->fixPage(0, true);	
 	numEntries = reinterpret_cast<uint64_t*>(bootFrame.getData())[0];
 	
 	// File is yet to be initialized and contains no information
 	if (numEntries == 0)
-	{
+	{	
 		bm->unfixPage(bootFrame, false);
 		
 		// update data structures
@@ -176,9 +175,7 @@ void SegmentInventory::initializeFromFile()
 		numEntries = 1;
 		Extent ext(0, 1);
 		extents.push_back(ext);
-		
-		// reflect current state of data structures to file
-		writeToFile();
+		segments.insert(pair<uint64_t, Segment*>(0, this));		
 		return;
 	}
 	
@@ -194,7 +191,7 @@ void SegmentInventory::initializeFromFile()
 	
 	// Now that the mapping of segment ids to extents is complete, create and 
 	// store the actual segments   
-    for (auto it = mapping.begin(); it != mapping.end(); ++it )
+    for (auto it = mapping.begin(); it != mapping.end(); ++it)
 	{
 		// probe segment id, add extent if segment already stored, otherwise
 		// create new segment and store extent.
@@ -249,11 +246,7 @@ void SegmentInventory::writeToFile()
 	// The number of entries that may still be written to page,
 	// controls overflow
 	uint64_t entryCounter = maxEntries;
-	
-	// Mark last iteration of the following outer loop
-	auto final_iter = segments.end();
-	--final_iter;
-	
+			
 	// Loop through all data to be written to file
 	for (auto it=segments.begin(); it!=segments.end(); ++it)
 	{
@@ -272,17 +265,18 @@ void SegmentInventory::writeToFile()
 			
 			// If no more tuples fit on page or this is the final iteration
 			// on both loops, flush the buffer
-			if (entryCounter == 0 || (it == final_iter && j == exts.size()-1))
+			if (entryCounter == 0 || (it == (--segments.end()) && 
+			                           j == exts.size()-1))
 			{
 				// Get the next available frame for the SI
 				uint64_t page = frames.top();
 				frames.pop();
-				
-				// write to file
+
+				// write to file				
 				BufferFrame& bf = bm->fixPage(page, true);
 				writeToArray(buffer.data(), bf.getData(), buffer.size(), 0);
 				bm->unfixPage(bf, true);
-			
+
 				// reset buffer
 				buffer.clear();
 				buffer.push_back(numEntries);

@@ -128,7 +128,7 @@ Extent FreeSpaceInventory::getExtent(uint64_t numPages)
 
 // _____________________________________________________________________________
 void FreeSpaceInventory::initializeFromFile()
-{
+{	
 	// Read in information available starting in frame #1
 	BufferFrame& bootFrame = bm->fixPage(1, true);
 	numEntries = reinterpret_cast<uint64_t*>(bootFrame.getData())[0];
@@ -146,9 +146,6 @@ void FreeSpaceInventory::initializeFromFile()
 		numEntries = 1;
 		forwardMap.insert(pair<uint64_t, uint64_t>(2, 3));
 		reverseMap.insert(pair<uint64_t, uint64_t>(3, 2));
-		
-		// reflect current state of fsi to file
-		writeToFile();
 		return;
 	}
 	
@@ -189,7 +186,9 @@ void FreeSpaceInventory::writeToFile()
 	{
 		Extent e = extents[i];
 		for(uint64_t i = e.start; i < e.end; i++)
+		{
 			frames.push(i);
+		}
 	}
 
 	// Accumulate the ranges in a buffer, and when it overflows, write to
@@ -203,26 +202,22 @@ void FreeSpaceInventory::writeToFile()
 	// controls overflow
 	uint64_t entryCounter = maxEntries;
 	
-	// Mark last iteration of the following outer loop
-	auto final_iter = forwardMap.end();
-	--final_iter;
-	
 	// Loop through all data to be written to file
 	for (auto it=forwardMap.begin(); it!=forwardMap.end(); ++it)
 	{
 		buffer.push_back(it->first);
 		buffer.push_back(it->second);
-	
+			
 		entryCounter--;
 			
 		// If no more tuples fit on page or this is the final iteration
 		// on both loops, flush the buffer
-		if (entryCounter == 0 || it == final_iter)
+		if (entryCounter == 0 || it == (--forwardMap.end()))
 		{
 			// Get the next available frame for the SI
-			uint64_t page = frames.top();
+			uint64_t page = frames.top();	
 			frames.pop();
-			
+							
 			// write to file
 			BufferFrame& bf = bm->fixPage(page, true);
 			writeToArray(buffer.data(), bf.getData(), buffer.size(), 0);

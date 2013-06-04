@@ -14,14 +14,15 @@ using namespace std;
 
 // _____________________________________________________________________________
 SegmentManager::SegmentManager(const string& filename)
-{
+{	
 	// Start with three pages, one page for the segment inventory,
 	// one page for the space inventory, and one free page
 	bm = new BufferManager(filename, params.bufferSize, 3);
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
-	segInv = new SegmentInventory(bm, false, 0);
+	segInv = new SegmentInventory(bm, false, 0);	
 	spaceInv = new FreeSpaceInventory(segInv, bm, false, 1);
+	
 	bool found = segInv->registerSegment(spaceInv);
 	
 	// If the FSI was already registered to the SI, it means that meaningful

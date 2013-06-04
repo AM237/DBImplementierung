@@ -76,7 +76,7 @@ int BufferManager::initializeDatabase(const char* filename)
   	} else {
   	
   		fclose(dbFile);
-  		dbFile = fopen(filename, "r");
+  		dbFile = fopen(filename, "rb");
 
 		if (lseek(fileno(dbFile), 0, SEEK_END) < 0)
 		{
@@ -147,7 +147,6 @@ std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
 //______________________________________________________________________________
 void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 {
-
 	// Read page from file into main memory. 
 	// Page begins at pageId * pageSize bytes	
 	char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 

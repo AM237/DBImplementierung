@@ -112,7 +112,6 @@ public:
 	// in the form [start, end)
 	std::pair<uint64_t, uint64_t> growDB(uint64_t numPages);
 
-                  
 private:
 	
 	// Reads page with pageID into frame, updates hash table. The page becomes
