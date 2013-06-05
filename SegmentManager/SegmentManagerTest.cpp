@@ -59,9 +59,6 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(fsi->extents[0].start, 1);
 	ASSERT_EQ(fsi->extents[0].end, 2);
 	
-	si->writeToFile();
-	fsi->writeToFile();
-	
 	delete sm;
 
 	// Check actual file created -----------------------------------------------

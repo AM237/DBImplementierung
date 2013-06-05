@@ -27,6 +27,7 @@ SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id)
 // _____________________________________________________________________________
 SegmentInventory::~SegmentInventory()
 {	
+	writeToFile();
 	for (auto it=segments.begin(); it!=segments.end(); ++it)
 		if (it->first > 1 && it->second != nullptr) delete it->second;
 }

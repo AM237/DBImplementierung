@@ -26,7 +26,7 @@ public:
 	FreeSpaceInventory(SegmentInventory* si, BufferManager* bm, 
 	                   bool visible, uint64_t id);
 	                   
-	~FreeSpaceInventory() { }
+	~FreeSpaceInventory() { writeToFile(); }
 	
 	// Give an extent to the FSI, which then incorporates its pages
 	// to the inventory of total free pages
