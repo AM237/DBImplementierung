@@ -33,6 +33,7 @@ public:
 
 	// Constructor, destructor
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment(bool permanent, bool visible, uint64_t id)
 	{
 		this->permanent = permanent;

@@ -25,6 +25,7 @@ public:
 
 	// Constructor, destructor
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	SegmentManager(const std::string& filename);
 	
 	// Deletes SI, FSI, Buffer Manager

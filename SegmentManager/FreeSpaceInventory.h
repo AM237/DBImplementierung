@@ -23,6 +23,7 @@ public:
 
 	// Constructor/destructor. Created by the SI when initializing from 
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	FreeSpaceInventory(SegmentInventory* si, BufferManager* bm, 
 	                   bool visible, uint64_t id);
 	                   

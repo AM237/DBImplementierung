@@ -38,6 +38,7 @@ public:
 	// found initially on page 0 of the database into Segments in main memory,
 	// with their respectively defined extents. See initializeFromFile
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
 	
 	// Destructor. Deletes only regular segments managed, the SegmentManager 
