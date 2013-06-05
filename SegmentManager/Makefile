@@ -18,7 +18,7 @@ all: clean compile test release
 
 compile: subdirs $(MAIN_BINARIES) $(TEST_BINARIES)
 
-test: $(TEST_BINARIES)
+test: subdirs $(TEST_BINARIES)
 	 for T in $(TEST_BINARIES); do ./$$T; done
 
 clean: cleansubdirs

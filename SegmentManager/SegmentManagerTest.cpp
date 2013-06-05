@@ -102,13 +102,14 @@ TEST(SegmentManagerTest, initializeNoFile)
 	
 	for (int i = 7; i < intsPerPage; i++)
 		ASSERT_EQ(pages[i], 0);
-	
-	int i = intsPerPage;
 		
 	// Check contents: FSI
-	ASSERT_EQ(pages[i], 1);
-	ASSERT_EQ(pages[i+1], 2);
-	ASSERT_EQ(pages[i+2], 3);
+	ASSERT_EQ(pages[intsPerPage], 1);
+	ASSERT_EQ(pages[intsPerPage+1], 2);
+	ASSERT_EQ(pages[intsPerPage+2], 3);
+	
+	for (int i = intsPerPage+3; i < 3*intsPerPage; i++)
+		ASSERT_EQ(pages[i], 0);
 	
 	// Cleanup
 	if (system("rm database") < 0) 
