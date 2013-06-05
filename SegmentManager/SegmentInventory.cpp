@@ -28,7 +28,7 @@ SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id)
 SegmentInventory::~SegmentInventory()
 {	
 	for (auto it=segments.begin(); it!=segments.end(); ++it)
-		delete it->second;
+		if (it->first > 1 && it->second != nullptr) delete it->second;
 }
 
 //______________________________________________________________________________

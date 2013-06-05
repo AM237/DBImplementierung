@@ -25,6 +25,7 @@ public:
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FreeSpaceInventory(SegmentInventory* si, BufferManager* bm, 
 	                   bool visible, uint64_t id);
+	                   
 	~FreeSpaceInventory() { }
 	
 	// Give an extent to the FSI, which then incorporates its pages

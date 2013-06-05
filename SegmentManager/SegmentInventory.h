@@ -40,7 +40,8 @@ public:
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
 	
-	// Destructor
+	// Destructor. Deletes only regular segments managed, the SegmentManager 
+	// should take care of deleting the SI, FSI, and as well the BufferManager
 	~SegmentInventory();
 	
 	// Registers the given segment with the segment inventory.

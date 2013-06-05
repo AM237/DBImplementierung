@@ -26,6 +26,8 @@ public:
 	// Constructor, destructor
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	SegmentManager(const std::string& filename);
+	
+	// Deletes SI, FSI, Buffer Manager
 	~SegmentManager();
 	
 	// Creates a new segment with one initial extent, and returns its id

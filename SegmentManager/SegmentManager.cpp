@@ -48,11 +48,11 @@ SegmentManager::~SegmentManager()
 	// Drop non permanent segments
 	for (auto it=segInv->segments.begin(); it!=segInv->segments.end(); ++it)
 		if (!(it->second)->permanent) dropSegment(it->first);
-		
+	
 	// Clean up components
-	delete segInv;
-	delete spaceInv;
-	delete bm;
+	if (segInv != nullptr) delete segInv;	
+	if (spaceInv != nullptr) delete spaceInv;
+	if (bm != nullptr) delete bm;
 }
 
 // _____________________________________________________________________________
