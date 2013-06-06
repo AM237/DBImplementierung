@@ -125,9 +125,9 @@ TEST(SegmentManagerTest, initializeWithFile)
 	// | 0  | 1   | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11   | 12   | 13| 14   |
 	// | SI | FSI | 4 | 2 | 3 | 2 | 3 | 3 | 2 | 4 | 4 | Free | Free | 2 | Free |
 
-	uint64_t size = constants::pageSize;
+	uint64_t size = constants::pageSize/sizeof(uint64_t);
 	vector<uint64_t> pages;
-	pages.resize(15 * size/sizeof(uint64_t), 0);
+	pages.resize(15 * size, 0);
 	
 	// Set page contents
 	for (unsigned int i = 2*size; i < 3*size; i++) pages[i] = 3;
@@ -151,7 +151,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	                               2, 13, 14 };
 	// Encode FSI
 	vector<uint64_t> fsivec = { 2, 11, 13,
-	                            14, 15 }; 
+	                               14, 15 }; 
 	                                                    
 	// Build data vector
 	sivec.resize(size/sizeof(uint64_t), 0);
@@ -159,13 +159,13 @@ TEST(SegmentManagerTest, initializeWithFile)
 	for (size_t i = 0; i < sivec.size(); i++) 
 	{
 		pages[i] = sivec[i];
-		pages[size/sizeof(uint64_t)+i] = fsivec[i];
+		pages[size+i] = fsivec[i];
 	}
 	
 	// Create file
 	FILE* testFile;
  	testFile = fopen ("database", "wb");
-	if ((write(fileno(testFile), pages.data(), 15 * constants::pageSize) < 0))
+	if (write(fileno(testFile), pages.data(), 15 * constants::pageSize) < 0)
 		std::cout << "initializeWithFile: error writing to testFile" << endl;
 	fclose(testFile);
 	
@@ -175,6 +175,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_TRUE(sm->bm != nullptr);
 	ASSERT_TRUE(sm->segInv != nullptr);
 	ASSERT_TRUE(sm->spaceInv != nullptr);
+	
 	
 	// Check SI ----------------------------------------------------------------
 	SegmentInventory* si = sm->segInv;
@@ -196,7 +197,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_NE(si->segments.find(2), si->segments.end());
 	ASSERT_NE(si->segments.find(3), si->segments.end());
 	ASSERT_NE(si->segments.find(4), si->segments.end());
-
+	
 	// Check FSI ---------------------------------------------------------------
 	FreeSpaceInventory* fsi = sm->spaceInv;
 	ASSERT_EQ(fsi->bm, sm->bm);

@@ -11,15 +11,16 @@ using namespace std;
 
 
 // _____________________________________________________________________________
-RegularSegment::RegularSegment(Extent base, bool visible, uint64_t id) 
-               : Segment(true, visible, id)
+RegularSegment::RegularSegment(bool visible, uint64_t id, Extent* base) 
+               : Segment(true, visible, id, base)
 {
-	extents.push_back(base);
+
 }
 
+/*
 //______________________________________________________________________________
 RegularSegment::RegularSegment(bool visible, uint64_t id) 
                : Segment(true, visible, id)
 {
-}
+}*/
 

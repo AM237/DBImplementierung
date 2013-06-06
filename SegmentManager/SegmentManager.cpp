@@ -21,23 +21,11 @@ SegmentManager::SegmentManager(const string& filename)
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
 	segInv = new SegmentInventory(bm, false, 0);	
-	spaceInv = new FreeSpaceInventory(segInv, bm, false, 1);
-	
-	bool found = segInv->registerSegment(spaceInv);
-	
-	// If the FSI was already registered to the SI, it means that meaningful
-	// data (including the FSI and its extents) were found on file, which
-	// in turn means that the SI already created the FSI instance and updated
-	// its state.
-	if (found)
+	spaceInv = (FreeSpaceInventory*)segInv->getSegment(1);
+	if (spaceInv == nullptr) 
 	{
-		delete spaceInv;
-		spaceInv = (FreeSpaceInventory*)segInv->getSegment(1);
-		if (spaceInv == nullptr)
-		{
-			cout << "Error retrieving FSI from SI" << endl;
-			exit(1);
-		}
+		spaceInv = new FreeSpaceInventory(segInv, bm, false, 1);
+		segInv->registerSegment(spaceInv);
 	}
 }
 
@@ -82,7 +70,7 @@ uint64_t SegmentManager::createSegment(bool visible)
 	{
 		// e has already been unregistered from the FSI
 		uint64_t newId = segInv->getNextId(); 
-		Segment* newSeg = new RegularSegment(e, visible, newId);
+		Segment* newSeg = new RegularSegment(visible, newId, &e);
 		bool found = segInv->registerSegment(newSeg);
 		if (found)
 		{

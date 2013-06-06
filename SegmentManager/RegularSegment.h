@@ -17,8 +17,8 @@ class RegularSegment : public Segment
 public:
 
 	// Constructor/destructor
-	RegularSegment(Extent base, bool visible, uint64_t id);
-	RegularSegment(bool visible, uint64_t id);
+	RegularSegment(bool visible, uint64_t id, Extent* base = NULL);
+	//RegularSegment(bool visible, uint64_t id);
 	      	  
 	~RegularSegment() { }	
 	

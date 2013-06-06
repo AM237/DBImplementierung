@@ -39,7 +39,8 @@ public:
 	// with their respectively defined extents. See initializeFromFile
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	SegmentInventory(BufferManager* bm, bool visible, uint64_t id);
+	SegmentInventory(BufferManager* bm, bool visible, uint64_t id, 
+	                 Extent* ex = NULL);
 	
 	// Destructor. Deletes only regular segments managed, the SegmentManager 
 	// should take care of deleting the SI, FSI, and as well the BufferManager

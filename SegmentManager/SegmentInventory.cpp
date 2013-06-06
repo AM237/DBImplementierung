@@ -16,8 +16,8 @@
 using namespace std;
 
 // _____________________________________________________________________________
-SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id) 
-                : Segment(true, visible, id)
+SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id, 
+                                   Extent* ex) : Segment(true, visible, id, ex)
 {	
 	this->bm = bm;	
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
@@ -196,23 +196,27 @@ void SegmentInventory::initializeFromFile()
 	{
 		// probe segment id, add extent if segment already stored, otherwise
 		// create new segment and store extent.
-		uint64_t segId = it->first;
+		uint64_t segId = it->first;		
 		auto segIt = segments.find(segId);
 		if (segIt != segments.end()) 
 			segIt->second->extents.push_back(it->second);
 			
 		else {
 		
-			Segment* newSeg = nullptr;
-			if (segId == 0) extents.push_back(it->second);
-			if (segId == 1) newSeg = new FreeSpaceInventory(this, bm, false, segId);
-			else            newSeg = new RegularSegment(true, segId);
-			
-			if (newSeg != nullptr) 
+			Segment* newSeg = NULL;
+			if (segId == 0)  
 			{
-				newSeg->extents.push_back(it->second);
-				segments.insert(pair<uint64_t, Segment*>(segId, newSeg));
+				extents.push_back(it->second);
+				segments.insert(pair<uint64_t, Segment*>(segId, this));
 			}
+				
+			else if (segId == 1) 
+				 newSeg = new FreeSpaceInventory(this, bm, false, segId, &(it->second));
+
+			else newSeg = new RegularSegment(true, segId, &(it->second));
+			
+			if (newSeg != NULL) 
+				segments.insert(pair<uint64_t, Segment*>(segId, newSeg));
 		}
 	}
 }

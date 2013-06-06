@@ -11,8 +11,9 @@ using namespace std;
 
 // _____________________________________________________________________________
 FreeSpaceInventory::FreeSpaceInventory(SegmentInventory* si, 
-                                       BufferManager* bm, bool visible,
-                                       uint64_t id) : Segment(true, visible, id)
+                                       BufferManager* bm, bool visible, 
+                                       uint64_t id, Extent* ex) 
+                                       : Segment(true, visible, id, ex)
 {
 	this->si = si;
 	this->bm = bm;
@@ -132,12 +133,11 @@ void FreeSpaceInventory::initializeFromFile()
 	// Read in information available starting in frame #1
 	BufferFrame& bootFrame = bm->fixPage(1, true);
 	numEntries = reinterpret_cast<uint64_t*>(bootFrame.getData())[0];
+	bm->unfixPage(bootFrame, false);
 	
 	// File is yet to be initialized and contains no information
 	if (numEntries == 0)
-	{
-		bm->unfixPage(bootFrame, false);
-		
+	{		
 		// update extent data
 		Extent ext(1, 2);
 		extents.push_back(ext);
@@ -160,7 +160,7 @@ void FreeSpaceInventory::initializeFromFile()
 			     << "FSI has no defined extents" << endl;
 			exit(1);
 		}
-		
+				
 		for (size_t i = 0; i < extents.size(); i++)
 		{
 			numEntries++;

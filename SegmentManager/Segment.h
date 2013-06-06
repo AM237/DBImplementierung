@@ -31,15 +31,23 @@ class Segment
 
 public:
 
-	// Constructor, destructor
+	// Constructor, destructor. Allows for an option extent to be added
+	// in the construction process.
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	Segment(bool permanent, bool visible, uint64_t id)
+	Segment(bool permanent, bool visible, uint64_t id, Extent* ex = NULL)
 	{
 		this->permanent = permanent;
 		this->visible = visible; 
 		this->id = id;
 		this->nextPageCounter = 0;
+		
+		if (ex != NULL)
+		{
+			Extent e(ex->start, ex->end);
+			this->extents.push_back(e);
+			//delete ex;
+		}
 	}
 	
 	virtual ~Segment() { }
