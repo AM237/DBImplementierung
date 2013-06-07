@@ -128,6 +128,30 @@ Extent FreeSpaceInventory::getExtent(uint64_t numPages)
 }
 
 // _____________________________________________________________________________
+void FreeSpaceInventory::parseFSIExtents(uint64_t frame, uint64_t& counter)
+{
+	BufferFrame& bf = bm->fixPage(frame, false);
+	uint64_t* data = reinterpret_cast<uint64_t*>(bf.getData());
+	uint64_t limit = min(counter, maxEntries);
+	
+	for (unsigned int i = 1; i < 2*limit; i=i+2)
+	{
+		counter--;
+		uint64_t start = data[i];
+		uint64_t end = data[i+1];
+		
+		// Fill mapping
+		forwardMap.insert(pair<uint64_t, uint64_t>(start, end));
+		reverseMap.insert(pair<uint64_t, uint64_t>(end, start));
+	}
+	
+	bm->unfixPage(bf, false);
+}
+
+
+
+
+// _____________________________________________________________________________
 void FreeSpaceInventory::initializeFromFile()
 {	
 	// Read in information available starting in frame #1
@@ -160,15 +184,18 @@ void FreeSpaceInventory::initializeFromFile()
 			     << "FSI has no defined extents" << endl;
 			exit(1);
 		}
-				
+		
+		// Loop through pages in extents, get data and update structures	
+		vector<uint64_t> frames;	
 		for (size_t i = 0; i < extents.size(); i++)
 		{
-			numEntries++;
 			Extent e = extents[i];
-			forwardMap.insert(pair<uint64_t, uint64_t>(e.start, e.end));
-			reverseMap.insert(pair<uint64_t, uint64_t>(e.end, e.start));
+			for(uint64_t i = e.start; i < e.end; i++) frames.push_back(i);
 		}
-	
+		
+		uint64_t entryCounter = numEntries;
+		for (size_t i = 0; i < frames.size(); i++) 
+			parseFSIExtents(frames[i], entryCounter);
 		return;
 	} 
 }
@@ -185,10 +212,7 @@ void FreeSpaceInventory::writeToFile()
 	for (size_t i = 0; i < extents.size(); i++)
 	{
 		Extent e = extents[i];
-		for(uint64_t i = e.start; i < e.end; i++)
-		{
-			frames.push(i);
-		}
+		for(uint64_t i = e.start; i < e.end; i++) frames.push(i);
 	}
 
 	// Accumulate the ranges in a buffer, and when it overflows, write to

@@ -19,7 +19,8 @@ using namespace std;
 SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id, 
                                    Extent* ex) : Segment(true, visible, id, ex)
 {	
-	this->bm = bm;	
+	this->bm = bm;
+	this->nextId = 1;	
 	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
 	initializeFromFile();
 }
@@ -211,7 +212,8 @@ void SegmentInventory::initializeFromFile()
 			}
 				
 			else if (segId == 1) 
-				 newSeg = new FreeSpaceInventory(this, bm, false, segId, &(it->second));
+				 newSeg = new FreeSpaceInventory(this, bm, false, segId, 
+				                                 &(it->second));
 
 			else newSeg = new RegularSegment(true, segId, &(it->second));
 			
@@ -224,9 +226,8 @@ void SegmentInventory::initializeFromFile()
 // _____________________________________________________________________________
 void SegmentInventory::writeToFile()
 {	
-	// Handle SI extents:
-	//
-    // Get frames within those extents. Note: there might be more pages
+
+    // Get frames within SI extents. Note: there might be more pages
     // in the extents than necessary (i.e. inventory fills up a little more
     // than the first page -> extra extent assigned to the SI, even though
     // only a small portion of it is actually used)
@@ -234,13 +235,10 @@ void SegmentInventory::writeToFile()
 	for (size_t i = 0; i < extents.size(); i++)
 	{
 		Extent e = extents[i];
-		for(uint64_t i = e.start; i < e.end; i++)
-			frames.push(i);
+		for(uint64_t i = e.start; i < e.end; i++) frames.push(i);
 	}
 	
-	
-	// Handle all other segments:
-	//
+
 	// Accumulate the tupels in a buffer, and when it overflows, write to
 	// the next page given by the queue
 	vector<uint64_t> buffer;

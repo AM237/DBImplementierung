@@ -44,6 +44,9 @@ private:
 	// Initializes the free space mapping from the contents given on file
 	void initializeFromFile();
 	
+	// For a given page, read the data and parse it into the FSI's structures.
+	void parseFSIExtents(uint64_t frame, uint64_t& counter);
+	
 	// Takes the extents of this segment, and writes the entries found in
 	// freeSpace in the following format: numEntries | start1 | end1 | start2 |
 	// end2 | ... etc.

@@ -85,7 +85,8 @@ TEST(SegmentManagerTest, initializeNoFile)
 	}
 	if (read(fileno(db), pages.data(), 3*constants::pageSize) < 0)
 		std::cout << "Error reading test db " << endl;
-	
+		
+	fclose(db);
 		
 	// Check contents: SI
 	ASSERT_EQ(pages[0], 2);
@@ -97,16 +98,14 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(pages[5], 1);
 	ASSERT_EQ(pages[6], 2);
 	
-	for (int i = 7; i < intsPerPage; i++)
-		ASSERT_EQ(pages[i], 0);
+	for (int i = 7; i < intsPerPage; i++) ASSERT_EQ(pages[i], 0);
 		
 	// Check contents: FSI
 	ASSERT_EQ(pages[intsPerPage], 1);
 	ASSERT_EQ(pages[intsPerPage+1], 2);
 	ASSERT_EQ(pages[intsPerPage+2], 3);
 	
-	for (int i = intsPerPage+3; i < 3*intsPerPage; i++)
-		ASSERT_EQ(pages[i], 0);
+	for (int i = intsPerPage+3; i < 3*intsPerPage; i++) ASSERT_EQ(pages[i], 0);
 	
 	// Cleanup
 	if (system("rm database") < 0) 
@@ -130,13 +129,14 @@ TEST(SegmentManagerTest, initializeWithFile)
 	pages.resize(15 * size, 0);
 	
 	// Set page contents
-	for (unsigned int i = 2*size; i < 3*size; i++) pages[i] = 3;
-	for (unsigned int i = 3*size; i < 4*size; i++) pages[i] = 1;
-	for (unsigned int i = 4*size; i < 5*size; i++) pages[i] = 2;
-	for (unsigned int i = 5*size; i < 6*size; i++) pages[i] = 1;
-	for (unsigned int i = 6*size; i < 8*size; i++) pages[i] = 2;
-	for (unsigned int i = 8*size; i < 9*size; i++) pages[i] = 1;
-	for (unsigned int i = 9*size; i < 11*size; i++) pages[i] = 3;
+	for (unsigned int i = 2*size; i < 3*size; i++) pages[i] = 4;
+	for (unsigned int i = 3*size; i < 4*size; i++) pages[i] = 2;
+	for (unsigned int i = 4*size; i < 5*size; i++) pages[i] = 3;
+	for (unsigned int i = 5*size; i < 6*size; i++) pages[i] = 2;
+	for (unsigned int i = 6*size; i < 8*size; i++) pages[i] = 3;
+	for (unsigned int i = 8*size; i < 9*size; i++) pages[i] = 2;
+	for (unsigned int i = 9*size; i < 11*size; i++) pages[i] = 4;
+	for (unsigned int i = 13*size; i < 14*size; i++) pages[i] = 2;
 	
 	// Encode SI
 	vector<uint64_t> sivec = { 10, 0, 0, 1,
@@ -154,8 +154,8 @@ TEST(SegmentManagerTest, initializeWithFile)
 	                               14, 15 }; 
 	                                                    
 	// Build data vector
-	sivec.resize(size/sizeof(uint64_t), 0);
-	fsivec.resize(size/sizeof(uint64_t), 0);
+	sivec.resize(size, 0);
+	fsivec.resize(size, 0);
 	for (size_t i = 0; i < sivec.size(); i++) 
 	{
 		pages[i] = sivec[i];
@@ -243,8 +243,8 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(si->segments.find(3)->second->extents.size(), 2);
 	ASSERT_EQ(si->segments.find(3)->second->extents[0].start, 4);
 	ASSERT_EQ(si->segments.find(3)->second->extents[0].end, 5);
-	ASSERT_EQ(si->segments.find(2)->second->extents[1].start, 6);
-	ASSERT_EQ(si->segments.find(2)->second->extents[1].end, 8);
+	ASSERT_EQ(si->segments.find(3)->second->extents[1].start, 6);
+	ASSERT_EQ(si->segments.find(3)->second->extents[1].end, 8);
 	
 	ASSERT_EQ(si->segments.find(4)->second->extents.size(), 2);
 	ASSERT_EQ(si->segments.find(4)->second->extents[0].start, 2);
@@ -269,8 +269,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	{
 		BufferFrame& bf = si->bm->fixPage(segpages[i], false);
 		uint64_t* data = (uint64_t*)bf.getData();
-		for (uint64_t i = 0; i < constants::pageSize/sizeof(uint64_t); i++)
-			ASSERT_EQ(data[i], 2);
+		for (uint64_t i = 0; i < size; i++) ASSERT_EQ(data[i], 2);
 		si->bm->unfixPage(bf, false);
 	}
 	
@@ -287,8 +286,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	{
 		BufferFrame& bf = si->bm->fixPage(segpages[i], false);
 		uint64_t* data = (uint64_t*)bf.getData();
-		for (uint64_t i = 0; i < constants::pageSize/sizeof(uint64_t); i++)
-			ASSERT_EQ(data[i], 3);
+		for (uint64_t i = 0; i < size; i++) ASSERT_EQ(data[i], 3);
 		si->bm->unfixPage(bf, false);
 	}
 	
@@ -305,8 +303,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	{
 		BufferFrame& bf = si->bm->fixPage(segpages[i], false);
 		uint64_t* data = (uint64_t*)bf.getData();
-		for (uint64_t i = 0; i < constants::pageSize/sizeof(uint64_t); i++)
-			ASSERT_EQ(data[i], 4);
+		for (uint64_t i = 0; i < size; i++) ASSERT_EQ(data[i], 4);
 		si->bm->unfixPage(bf, false);
 	}
 	
@@ -316,8 +313,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	{
 		BufferFrame& bf = si->bm->fixPage(emptypages[i], false);
 		uint64_t* data = (uint64_t*)bf.getData();
-		for (uint64_t i = 0; i < constants::pageSize/sizeof(uint64_t); i++)
-			ASSERT_EQ(data[i], 0);
+		for (uint64_t i = 0; i < size; i++) ASSERT_EQ(data[i], 0);
 		si->bm->unfixPage(bf, false);
 	}
 	
