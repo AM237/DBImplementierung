@@ -23,27 +23,32 @@ class SegmentManager
 
 public:
 
-	// Constructor, destructor
+	// Constructor, destructor: deletes SI, FSI, Buffer Manager
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	SegmentManager(const std::string& filename);
-	
-	// Deletes SI, FSI, Buffer Manager
 	~SegmentManager();
 	
 	// Creates a new segment with one initial extent, and returns its id
+	FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	uint64_t createSegment(bool visible);
 	
 	// Drops the segment with the given id. The results in a change in the FSI,
 	// where the pages of the dropped segment are now recorded as being free.
+	//
+	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	void dropSegment(uint64_t segId);
 	
 	// Adds an additional extent to the segment with the given id.
 	// Method returns the page number of the first page of the new extent.
+	//
+	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	uint64_t growSegment(uint64_t segId);
 	
 	// Returns a pointer to the segment with the given id	
 	// If no such segment exists, a nullptr is returned
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment* retrieveSegmentById(uint64_t segId);
 
 private:

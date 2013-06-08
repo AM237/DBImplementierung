@@ -17,8 +17,8 @@ class RegularSegment : public Segment
 public:
 
 	// Constructor/destructor
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	RegularSegment(bool visible, uint64_t id, Extent* base = NULL);
-	//RegularSegment(bool visible, uint64_t id);
 	      	  
 	~RegularSegment() { }	
 	

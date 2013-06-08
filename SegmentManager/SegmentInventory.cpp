@@ -42,7 +42,7 @@ Segment* SegmentInventory::getSegment(uint64_t id)
 }
 
 //______________________________________________________________________________
-uint64_t SegmentInventory::getNextId()
+uint64_t SegmentInventory::setNextId()
 {
 	return nextId++;
 }

@@ -58,7 +58,9 @@ public:
 	// Returns the id of this segment
 	uint64_t getId() { return id; }
 	
-	// Returns the size of this segment in frames	
+	// Returns the size of this segment in frames
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);	
 	uint64_t getSize()
 	{
 		uint64_t counter = 0;
@@ -75,6 +77,8 @@ public:
 	// for the first time gives the first page of the segment, calling it twice
 	// gives the second page, and so on. If no more pages are available, the
 	// id of the last available page is returned.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	uint64_t nextPage()
 	{
 		std::vector<uint64_t> pages;
@@ -99,6 +103,8 @@ public:
 protected:
 
 	// Writes (copies) data from one array to another
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void writeToArray(uint64_t* from, void* to, int elems, int offset)
 	{
 		for (int i = offset; i < offset+elems; i++)

@@ -98,30 +98,33 @@ void FreeSpaceInventory::grow()
 
 // _____________________________________________________________________________
 Extent FreeSpaceInventory::getExtent(uint64_t numPages)
-{
-	for (auto it= forwardMap.begin(); it!=forwardMap.end(); ++it)
-		if ((it->second - it->first) >= numPages)
+{	
+	for (auto it = forwardMap.begin(); it != forwardMap.end(); ++it)
+	{
+		uint64_t first = it->first;
+		uint64_t second = it->second;
+		
+		if ((second - first) >= numPages)
 		{
-			Extent e(it->first, it->first + numPages);
+			Extent e(first, first+numPages);
 			
 			// Space required fills up an entire extent -> remove entire entry
-			if (e.end == it->second)
+			if (e.end == second)
 			{
 				numEntries--;
-				forwardMap.erase(it->first);
 				reverseMap.erase(it->second);
+				forwardMap.erase(it);
 				return e;
 			}
 			
 			// Otherwise space required fills up only a portion of an available
 			// extent -> update data structures approriately and return extent
-			forwardMap.erase(e.start);
-			forwardMap.insert(pair<uint64_t, uint64_t>(e.end, it->second));
-			reverseMap.find(it->second)->second = e.end;
-
+			forwardMap.insert(pair<uint64_t, uint64_t>(e.end, second));
+			reverseMap.find(second)->second = e.end;
+			forwardMap.erase(it);
 			return e;
 		}
-
+	}
 
 	Extent e(0, 0);
 	return e;

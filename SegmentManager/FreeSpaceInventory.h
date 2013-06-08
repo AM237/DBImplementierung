@@ -31,25 +31,36 @@ public:
 	
 	// Give an extent to the FSI, which then incorporates its pages
 	// to the inventory of total free pages
+	FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	void registerExtent(Extent e);
 
 	// Returns an extent (page number limits) with #numPages. If none is
 	// currently available due to the size of the database, an extent with
 	// start = end is returned. Otherwise, this method unregisters the extent
 	// from the FSI.
+	//
+	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	Extent getExtent(uint64_t numPages);
 
 private:
 
 	// Initializes the free space mapping from the contents given on file
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void initializeFromFile();
 	
 	// For a given page, read the data and parse it into the FSI's structures.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void parseFSIExtents(uint64_t frame, uint64_t& counter);
 	
 	// Takes the extents of this segment, and writes the entries found in
 	// freeSpace in the following format: numEntries | start1 | end1 | start2 |
 	// end2 | ... etc.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void writeToFile();
 	
 	// Adds an additional extent to the FSI. Whereas regular segments are grown 

@@ -29,10 +29,10 @@ TEST(SegmentManagerTest, initializeNoFile)
 	
 	// The segments mapping should contain only one extra entry, that of the FSI
 	ASSERT_EQ(si->segments.size(), 2);
-	ASSERT_NE(si->segments.find(1), si->segments.end());
-	ASSERT_NE(si->segments.find(0), si->segments.end());
-	ASSERT_EQ(si->segments.find(1)->second->id, 1);
-	ASSERT_EQ(si->segments.find(0)->second->id, 0);
+	ASSERT_NE(si->getSegment(0), nullptr);
+	ASSERT_NE(si->getSegment(1), nullptr);
+	ASSERT_EQ(si->getSegment(1)->id, 1);
+	ASSERT_EQ(si->getSegment(0)->id, 0);
 	
 	ASSERT_EQ(si->extents.size(), 1);
 	ASSERT_EQ(si->extents[0].start, 0);
@@ -192,11 +192,19 @@ TEST(SegmentManagerTest, initializeWithFile)
 	
 	// Check segment mapping
 	ASSERT_EQ(si->segments.size(), 5);
-	ASSERT_NE(si->segments.find(0), si->segments.end());
-	ASSERT_NE(si->segments.find(1), si->segments.end());
-	ASSERT_NE(si->segments.find(2), si->segments.end());
-	ASSERT_NE(si->segments.find(3), si->segments.end());
-	ASSERT_NE(si->segments.find(4), si->segments.end());
+	ASSERT_NE(si->getSegment(0), nullptr);
+	ASSERT_NE(si->getSegment(1), nullptr);
+	ASSERT_NE(si->getSegment(2), nullptr);
+	ASSERT_NE(si->getSegment(3), nullptr);
+	ASSERT_NE(si->getSegment(4), nullptr);		
+	ASSERT_EQ(si->getSegment(5), nullptr);
+	ASSERT_EQ(si->getSegment(6), nullptr);
+	ASSERT_EQ(si->getSegment(0), sm->retrieveSegmentById(0));
+	ASSERT_EQ(si->getSegment(1), sm->retrieveSegmentById(1));
+	ASSERT_EQ(si->getSegment(2), sm->retrieveSegmentById(2));
+	ASSERT_EQ(si->getSegment(3), sm->retrieveSegmentById(3));
+	ASSERT_EQ(si->getSegment(4), sm->retrieveSegmentById(4));
+		
 	
 	// Check FSI ---------------------------------------------------------------
 	FreeSpaceInventory* fsi = sm->spaceInv;
@@ -224,33 +232,33 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(fsi->extents[0].end, 2);
 	
 	// Check segments extents --------------------------------------------------
-	ASSERT_EQ(si->segments.find(0)->second->getSize(), 1);
-	ASSERT_EQ(si->segments.find(1)->second->getSize(), 1);
-	ASSERT_EQ(si->segments.find(2)->second->getSize(), 4);
-	ASSERT_EQ(si->segments.find(3)->second->getSize(), 3);
-	ASSERT_EQ(si->segments.find(4)->second->getSize(), 3);
+	ASSERT_EQ(si->getSegment(0)->getSize(), 1);
+	ASSERT_EQ(si->getSegment(1)->getSize(), 1);
+	ASSERT_EQ(si->getSegment(2)->getSize(), 4);
+	ASSERT_EQ(si->getSegment(3)->getSize(), 3);
+	ASSERT_EQ(si->getSegment(4)->getSize(), 3);
 	
-	ASSERT_EQ(si->segments.find(2)->second->extents.size(), 4);
-	ASSERT_EQ(si->segments.find(2)->second->extents[0].start, 3);
-	ASSERT_EQ(si->segments.find(2)->second->extents[0].end, 4);
-	ASSERT_EQ(si->segments.find(2)->second->extents[1].start, 5);
-	ASSERT_EQ(si->segments.find(2)->second->extents[1].end, 6);
-	ASSERT_EQ(si->segments.find(2)->second->extents[2].start, 8);
-	ASSERT_EQ(si->segments.find(2)->second->extents[2].end, 9);
-	ASSERT_EQ(si->segments.find(2)->second->extents[3].start, 13);
-	ASSERT_EQ(si->segments.find(2)->second->extents[3].end, 14);
+	ASSERT_EQ(si->getSegment(2)->extents.size(), 4);
+	ASSERT_EQ(si->getSegment(2)->extents[0].start, 3);
+	ASSERT_EQ(si->getSegment(2)->extents[0].end, 4);
+	ASSERT_EQ(si->getSegment(2)->extents[1].start, 5);
+	ASSERT_EQ(si->getSegment(2)->extents[1].end, 6);
+	ASSERT_EQ(si->getSegment(2)->extents[2].start, 8);
+	ASSERT_EQ(si->getSegment(2)->extents[2].end, 9);
+	ASSERT_EQ(si->getSegment(2)->extents[3].start, 13);
+	ASSERT_EQ(si->getSegment(2)->extents[3].end, 14);
 	
-	ASSERT_EQ(si->segments.find(3)->second->extents.size(), 2);
-	ASSERT_EQ(si->segments.find(3)->second->extents[0].start, 4);
-	ASSERT_EQ(si->segments.find(3)->second->extents[0].end, 5);
-	ASSERT_EQ(si->segments.find(3)->second->extents[1].start, 6);
-	ASSERT_EQ(si->segments.find(3)->second->extents[1].end, 8);
+	ASSERT_EQ(si->getSegment(3)->extents.size(), 2);
+	ASSERT_EQ(si->getSegment(3)->extents[0].start, 4);
+	ASSERT_EQ(si->getSegment(3)->extents[0].end, 5);
+	ASSERT_EQ(si->getSegment(3)->extents[1].start, 6);
+	ASSERT_EQ(si->getSegment(3)->extents[1].end, 8);
 	
-	ASSERT_EQ(si->segments.find(4)->second->extents.size(), 2);
-	ASSERT_EQ(si->segments.find(4)->second->extents[0].start, 2);
-	ASSERT_EQ(si->segments.find(4)->second->extents[0].end, 3);
-	ASSERT_EQ(si->segments.find(4)->second->extents[1].start, 9);
-	ASSERT_EQ(si->segments.find(4)->second->extents[1].end, 11);
+	ASSERT_EQ(si->getSegment(4)->extents.size(), 2);
+	ASSERT_EQ(si->getSegment(4)->extents[0].start, 2);
+	ASSERT_EQ(si->getSegment(4)->extents[0].end, 3);
+	ASSERT_EQ(si->getSegment(4)->extents[1].start, 9);
+	ASSERT_EQ(si->getSegment(4)->extents[1].end, 11);
 	
 	// Check segment contents --------------------------------------------------
 	Segment* seg;
@@ -324,6 +332,120 @@ TEST(SegmentManagerTest, initializeWithFile)
   		cout << "Error removing database" << endl;
 }
 
+
+
+// _____________________________________________________________________________
+TEST(SegmentManagerTest, createGrowDropSegment)
+{
+	SegmentManager* sm = new SegmentManager("database");
+	SegmentInventory* si = sm->segInv;
+	FreeSpaceInventory* fsi = sm->spaceInv;	
+	
+	// Create 2 regular segments  ----------------------------------------------
+	uint64_t segA = sm->createSegment(true);
+	uint64_t segB = sm->createSegment(true);
+	
+	// Check SI
+	ASSERT_EQ(si->nextId, 4);
+	ASSERT_EQ(si->numEntries, 4);
+	ASSERT_EQ(si->segments.size(), 4);
+	ASSERT_NE(si->getSegment(0), nullptr);
+	ASSERT_NE(si->getSegment(1), nullptr);
+	ASSERT_NE(si->getSegment(segA), nullptr);
+	ASSERT_NE(si->getSegment(segB), nullptr);
+	
+	// Check FSI
+	ASSERT_EQ(fsi->numEntries, 1);
+	
+	// The free space mapping should span one page, namely page 
+	// #(2*baseExtentSize + 2)
+	uint64_t freePageNo = 2*sm->params.baseExtentSize + 2;
+	ASSERT_EQ(fsi->forwardMap.size(), 1);
+	ASSERT_EQ(fsi->reverseMap.size(), 1);
+	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
+	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
+	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
+	
+	
+	// Drop segA ---------------------------------------------------------------
+	
+	// Database now has 3 + 2*baseExtentSize pages, also after dropping segA
+	sm->dropSegment(segA);
+	
+	// Check SI
+	ASSERT_EQ(si->nextId, 4);
+	ASSERT_EQ(si->numEntries, 3);
+	ASSERT_EQ(si->segments.size(), 3);
+	ASSERT_NE(si->getSegment(0), nullptr);
+	ASSERT_NE(si->getSegment(1), nullptr);
+	ASSERT_EQ(si->getSegment(segA), nullptr);
+	ASSERT_NE(si->getSegment(segB), nullptr);
+	
+	// Check FSI
+	ASSERT_EQ(fsi->numEntries, 2);
+	
+	// The free space mapping should span #baseExtentSize + 1 pages, 
+	// namely pages [2, baseExtentSize+2), 
+	// [2*baseExtentSize+2, 2*baseExtentSize+2 +1) 
+	freePageNo = 2*sm->params.baseExtentSize + 2;
+	ASSERT_EQ(fsi->forwardMap.size(), 2);
+	ASSERT_EQ(fsi->reverseMap.size(), 2);
+
+	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
+	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
+	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
+	
+	ASSERT_NE(fsi->forwardMap.find(2), fsi->forwardMap.end());
+	ASSERT_NE(fsi->reverseMap.find(sm->params.baseExtentSize+2), 
+	          fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(2)->second, sm->params.baseExtentSize+2);
+	ASSERT_EQ(fsi->reverseMap.find(sm->params.baseExtentSize+2)->second, 2);
+	
+	
+	// Grow segB ---------------------------------------------------------------
+	// Database grows in size by factor ceil(baseExtentSize ^ extentFactor)
+	sm->growSegment(segB);
+	
+	// Check SI
+	ASSERT_EQ(si->nextId, 4);
+	ASSERT_EQ(si->numEntries, 4);
+	ASSERT_EQ(si->segments.size(), 3);
+	ASSERT_NE(si->getSegment(0), nullptr);
+	ASSERT_NE(si->getSegment(1), nullptr);
+	ASSERT_EQ(si->getSegment(segA), nullptr);
+	ASSERT_NE(si->getSegment(segB), nullptr);
+	
+	// Check FSI
+	ASSERT_EQ(fsi->numEntries, 2);
+	
+	// The free space mapping should span #baseExtentSize + 1 pages, 
+	// namely pages [2, baseExtentSize+2), 
+	// [2+2*baseExtentSize+ceil(baseExtentSize^extentIncrease), 
+	//  2+2*baseExtentSize+ceil(baseExtentSize^extentIncrease) +1) 
+	freePageNo = 2+ 2*sm->params.baseExtentSize + 
+	            ceil(pow(sm->params.baseExtentSize, sm->params.extentIncrease));
+	            
+	ASSERT_EQ(fsi->forwardMap.size(), 2);
+	ASSERT_EQ(fsi->reverseMap.size(), 2);
+
+	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
+	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
+	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
+	
+	ASSERT_NE(fsi->forwardMap.find(2), fsi->forwardMap.end());
+	ASSERT_NE(fsi->reverseMap.find(sm->params.baseExtentSize+2), 
+	          fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(2)->second, sm->params.baseExtentSize+2);
+	ASSERT_EQ(fsi->reverseMap.find(sm->params.baseExtentSize+2)->second, 2);
+
+	// Cleanup
+	delete sm;
+	if (system("rm database") < 0) 
+  		cout << "Error removing database" << endl;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -44,6 +44,9 @@ public:
 	
 	// Destructor. Deletes only regular segments managed, the SegmentManager 
 	// should take care of deleting the SI, FSI, and as well the BufferManager
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	~SegmentInventory();
 	
 	// Registers the given segment with the segment inventory.
@@ -54,24 +57,37 @@ public:
 	// Returns true iff segment already known to SI. In this case the method
 	// returns immediately. This method performs no checks on the extents
 	// of the given segment.
+	// 
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
+	FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	bool registerSegment(Segment* seg);
 	
 	// Unregisters the given segment with the segment inventory.
 	// Returns false iff segment not known to SI. In this case the method
 	// returns immediately.
+	//
+	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	bool unregisterSegment(Segment* seg);
 	
 	// Returns the segment with the given id. If no such segment is found,
 	// nullptr is returned.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment* getSegment(uint64_t id);
 	
 	// Notifies the SI that the given segment has grown by the given offset.
 	// This allows the SI to allocate a new extent for itself if not enough
-	// space is available to log all the extents of the newly grown segment. 
+	// space is available to log all the extents of the newly grown segment.
+	//
+	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	void notifySegGrowth(uint64_t id, uint64_t offset);
 	
-	// Returns the next free segment id
-	uint64_t getNextId();
+	// Returns the next free segment id, updates the current id to the next
+	// available one.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
+	uint64_t setNextId();
 	
 private:
 
@@ -83,11 +99,17 @@ private:
 	//
 	// If there is no meaningful data on file (e.g. first int = 0), 
 	// an extent is created and recorded for the segment inventory.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void initializeFromFile();
 	
 	// Look up the SI's extents to get the pages where the information is to be
 	// written, and write tupels describing the mapping of segment ids to 
 	// extents (see initializeFromFile)
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void writeToFile();
 	
 	// Accumulates tuples of the form <segmentId, pageStartNo, pageEndNo>
@@ -98,6 +120,8 @@ private:
 	// counter decreases every time a tuple is read (should be initialized to
 	// the total number of tuples that make up the SI), so as to keep track
 	// of how much information is relevant on each page that is read.
+	//
+	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	void parseSIExtents(std::multimap<uint64_t, Extent, comp>& mapping, 
 	                    BufferFrame& frame, uint64_t& counter);
 	

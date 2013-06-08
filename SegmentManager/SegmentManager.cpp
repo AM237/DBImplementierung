@@ -63,13 +63,13 @@ uint64_t SegmentManager::createSegment(bool visible)
 		pair<uint64_t, uint64_t> growth = bm->growDB(base);
 		Extent grownExtent(growth.first, growth.second);
 		spaceInv->registerExtent(grownExtent);
-		createSegment(visible);
+		return createSegment(visible);
 	}
 	
 	else
 	{
 		// e has already been unregistered from the FSI
-		uint64_t newId = segInv->getNextId(); 
+		uint64_t newId = segInv->setNextId(); 
 		Segment* newSeg = new RegularSegment(visible, newId, &e);
 		bool found = segInv->registerSegment(newSeg);
 		if (found)
