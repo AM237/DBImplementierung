@@ -3,14 +3,14 @@ CXX = g++ -O3 -Wall -g -Wno-deprecated -std=c++0x
 MAIN_BINARIES = $(basename $(wildcard *Main.cpp))
 TEST_BINARIES = $(basename $(wildcard *Test.cpp))
 
-SUBDIRS = ../BufferManager/
+SUBDIRS = ../BufferManager/ ../SegmentManager/ 
 OBJECTS := $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp))))
 SUBDIROBJECTS = $(foreach dir, $(SUBDIRS), $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard $(dir)/*.cpp)))))
 
 MAIN_LIBS = #-pthread
 TEST_LIBS = -lgtest -lpthread
 DEBUG = -ggdb
-RELEASE = segmentmanager
+RELEASE = btree
 
 subdirs: 
 	for T in $(SUBDIRS); do cd $$T && $(MAKE) compile -C $$T; done
@@ -22,7 +22,9 @@ compile: subdirs $(MAIN_BINARIES) $(TEST_BINARIES)
 test: subdirs $(TEST_BINARIES)
 	 for T in $(TEST_BINARIES); do ./$$T; done
 
-clean: cleansubdirs
+clean: cleansubdirs cleanhere
+	
+cleanhere: 
 	rm -f *\~
 	rm -f *.o
 	rm -f $(MAIN_BINARIES)

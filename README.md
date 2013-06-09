@@ -3,14 +3,35 @@ DBImplementierung
 
 Code Repository for the "Databases Implementation on Modern CPU Architectures" Lecture, SS 2013, TUM
 
+
+Project BTree
+
+1. BTreeMain contains the external test provided in the lecture site.
+
+2. 'make release' compiles source code and places executables (main and own unit tests) in BTree/bin.
+
+
+
+Project SegmentManager
+
+1. Current status: SI, FSI, and regular operations on the segment manager and segments (drop, create, grow, etc.) are implemented and tested. The segment manager support a multiple page span for the SI and FSI, this still requires testing however. Slotted pages are not yet implemented.
+
+2. Design: the segment manager encompasses the buffer manager, that is, the buffer manager is instantiated internally within the segment manager.
+
+3. Currently only three types of segments are implemented, the SI, the FSI, and regular segments.
+
+4. 'make release' compiles source code and places executables (main and own unit tests) in SegmentManager/bin.
+
+
+
 Project BufferManager
 
 1. BufferManagerMain contains the external test provided in the lecture site.
 
-2. 'make release' compiles source code and places executables (main and own unit tests) in Sort/bin.
+2. 'make release' compiles source code and places executables (main and own unit tests) in BufferManager/bin.
 
 3. A sample (binary) data file has been provided in /bin. The BufferManager assumes the
-existence and correctness of this or any similar file.
+existence and correctness of this or any similar file, if such a file previously exists. Otherwise, the buffer manager can create an empty database.
 
 
 
