@@ -20,35 +20,25 @@ public:
 };
 
 
-
 // Class representing a node in a B+ Tree. -------------------------------------
 template<class T> class BTreeNode
 {
 public:
 
 	// Constructor. Underflow and overflow are controlled by the BTree itself.
-	BTreeNode() { }
+	BTreeNode(BTreeNode<T>* parent = NULL) : parent(parent) { }
 	~BTreeNode() { }
 
 private:
-
-	// Converts this node into a sequence of bytes.
-	// The actual length and format depends on whether this node is a leaf node
-	// or an inner node.
-	//virtual std::vector<char> serialize()=0;
-	
-	// Parses the given vector according to the agreed format, and fills 
-	// the node's data structures appropriately.
-	//virtual void deserialize(std::vector<char> serialized)=0;
-	
-	// Gets the size in bytes of the serialized object
-	//virtual uint64_t getSize()=0;
 
 	// The number of entries
 	uint64_t count;
 		
 	// (Opaque) Keys held by this node
 	std::vector<T> keys;
+
+	// The parent of this node
+	BTreeNode<T>* parent;
 	
 	// Marks whether this node is a leaf or not
 	bool isLeaf;
@@ -82,7 +72,11 @@ template<class T> class BTreeInnerNode : public BTreeNode<T>
 public:	
 
 	// Constructor
-	BTreeInnerNode() : BTreeNode<T>() { this->isLeaf = false; }
+	BTreeInnerNode() : BTreeNode<T>() 
+	{ 
+		this->isLeaf = false;
+		values.push_back(nullptr);
+	}
 
 private:
 

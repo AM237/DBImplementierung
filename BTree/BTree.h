@@ -20,12 +20,13 @@ public:
 	// Constructor. Inner nodes underflow at k entries, and overflow at 2k
 	// entries. Leaves underflow at l entries, and overflow at 2l entries.
 	// The root has either max 2k entries, or it is a leaf with max 2l entries.
-	BTree<T, CMP>(int k, int l);
+	BTree<T, CMP>(uint64_t k, uint64_t l);
 	
 	// Destructor
 	~BTree<T, CMP>();
 	
-	// Inserts a new key/TID pair into the tree.
+	// Inserts a new key/TID pair into the tree. Does not support non-unique
+	// entries.
 	void insert(T key, TID tid);
 	
 	// Deletes a specified key. Underfull pages are accepted. Returns false
@@ -44,17 +45,27 @@ private:
 	void writeToFile();
 	
 	// Starting at the given node, navigates down the tree to the leaf node
-	// where the given key should be inserted. Returns pointer to that leaf
+	// where the given key should be inserted. Returns pointer to that leaf.
+	// Assumes that the keys are sorted with respect to comp, and that the keys
+	// and values match with respect to their indices (e.g. first key separates 
+	// the first pointer from the second pointer)
 	BTreeLeafNode<T>* navigateToLeaf(T key, BTreeNode<T>* start);
 
-	// Underflow / overflow parameters
-	int k, l;
+	// Splits the given node and accomodates the entries along the split.
+	// Called recursively if necessary. Assumes given node has an overflow of 1
+	void splitNode(BTreeNode<T>* node);
 	
 	// Data structure to contain all nodes
 	std::vector<BTreeNode<T>*> nodes;
 	
-	// The root of the true
+	// The root of the tree
 	BTreeNode<T>* root;
+
+	// Comparison predicate
+	CMP comp;
+
+	// Underflow / overflow parameters
+	uint64_t k, l;
 };
 
 #endif  // BTREE_H
