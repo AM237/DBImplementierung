@@ -25,17 +25,33 @@ public:
 template<class T> class BTreeNode
 {
 public:
-	// Constructor. This Node underflows when it has less then #min entries,
-	// and overflows when it has more than #max entries.
-	BTreeNode(int min, int max) : min(min), max(max) { }
+
+	// Constructor. Underflow and overflow are controlled by the BTree itself.
+	BTreeNode() { }
+	~BTreeNode() { }
 
 private:
-	// The number of entries, underflow, overflow markers
-	uint64_t count;
-	int min, max;
+
+	// Converts this node into a sequence of bytes.
+	// The actual length and format depends on whether this node is a leaf node
+	// or an inner node.
+	//virtual std::vector<char> serialize()=0;
 	
+	// Parses the given vector according to the agreed format, and fills 
+	// the node's data structures appropriately.
+	//virtual void deserialize(std::vector<char> serialized)=0;
+	
+	// Gets the size in bytes of the serialized object
+	//virtual uint64_t getSize()=0;
+
+	// The number of entries
+	uint64_t count;
+		
 	// (Opaque) Keys held by this node
 	std::vector<T> keys;
+	
+	// Marks whether this node is a leaf or not
+	bool isLeaf;
 };
 
 
@@ -44,12 +60,13 @@ private:
 template<class T> class BTreeLeafNode : public BTreeNode<T>
 {
 public:	
-	// Constructor
-	BTreeLeafNode(int min, int max, BTreeLeafNode<T>* next = NULL) 
-		: BTreeNode<T>(min, max) { this->next = next; }
 
+	// Constructor
+	BTreeLeafNode(BTreeLeafNode<T>* next = NULL) : BTreeNode<T>() 
+	{ this->next = next; this->isLeaf = true; }
 
 private:
+
 	// Pointer to the next leaf node
 	BTreeLeafNode<T>* next;
 	
@@ -63,10 +80,12 @@ private:
 template<class T> class BTreeInnerNode : public BTreeNode<T>
 {
 public:	
+
 	// Constructor
-	BTreeInnerNode(int min, int max) : BTreeNode<T>(min, max) { }
+	BTreeInnerNode() : BTreeNode<T>() { this->isLeaf = false; }
 
 private:
+
 	// Values (pointers to other nodes) held by this node
 	std::vector<BTreeNode<T>*> values;
 };
