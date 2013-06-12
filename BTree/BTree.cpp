@@ -6,9 +6,6 @@
 
 #include "BTree.h"
 
-#include <algorithm>
-#include <vector>
-
 using namespace std;
 
 // _____________________________________________________________________________
@@ -29,6 +26,12 @@ template<class T, class CMP> BTree<T, CMP>::~BTree()
 }
 
 
+// _____________________________________________________________________________
+template<class T, class CMP> bool BTree<T, CMP>::cmp(T key1, T key2)
+{
+	return comp(key1, key2);
+}
+
 
 // _____________________________________________________________________________
 template<class T, class CMP> BTreeLeafNode<T>* BTree<T, CMP>::
@@ -39,16 +42,61 @@ template<class T, class CMP> BTreeLeafNode<T>* BTree<T, CMP>::
 
 	// Navigate through an inner node: first check if all keys held in the node
 	// are smaller than the given key -> follow last pointer in node
-	// sort(start->keys.begin(), start->keys.end(), comp);
-	if (comp(start->keys.back(), key)) 
+	// sort(start->keys.begin(), start->keys.end(), cmp);
+	if (cmp(start->keys.back(), key)) 
 		return navigateToLeaf(key, (BTreeInnerNode<T>*)start->values.back());
 
 
 	// Otherwise, find the first key in the vector that is greater than or equal
 	// to the search key -> follow pointer that immediately precedes this key
-	auto low = lower_bound(start->keys.begin(), start->keys.end(), key, comp);
+	auto low = lower_bound(start->keys.begin(), start->keys.end(), key, cmp);
 	int index = distance(start->keys.begin(), low);
 	return navigateToLeaf(key, (BTreeInnerNode<T>*)start->values[index]);
+}
+
+
+
+//______________________________________________________________________________
+template<class T, class CMP> TID BTree<T, CMP>::lookup(T key)
+{
+	// Get leaf and use binary search to locate the given key.
+	auto leaf = navigateToLeaf(key, root);
+	if (leaf->count == 0) throw keyNotFound;
+	auto bounds = equal_range(leaf->keys.begin(), leaf->keys.end(), key, cmp);
+	if (bounds.first == bounds.second) throw keyNotFound;
+	return leaf->values[bounds.first-leaf->keys.begin()];
+}
+
+
+//______________________________________________________________________________
+template<class T, class CMP> bool BTree<T, CMP>::erase(T key)
+{
+	auto leaf = navigateToLeaf(key);
+	if (leaf->count == 0) return false;
+	auto bounds = equal_range(leaf->keys.begin(), leaf->keys.end(), key, cmp);
+	if (bounds.first == bounds.second) return false;
+	else
+	{
+		leaf->keys.erase(bounds.first);
+		leaf->values.erase(bounds.first-leaf->keys.begin());
+	}
+	return true;
+}
+
+
+
+//______________________________________________________________________________
+template<class T, class CMP> BTreeRangeIterator<T, CMP>* BTree<T, CMP>::
+	lookupRange(T start, T end)
+{
+	// Local parameter copies to decouple pointer parameters to the iterator.
+	T s = start;
+	T e = end;
+
+	rangeIterators.push_back(new BTreeRangeIterator<T, CMP>(s, e));
+	auto it = rangeIterators.back();
+
+	return it;
 }
 
 
@@ -63,7 +111,7 @@ template<class T, class CMP> void BTree<T, CMP>::insert(T key, TID tid)
 	if(insertLeaf->count +1 <= 2*l)
 	{
 		// Key is larger than all other entries -> append pair to end
-		if (this->count == 0 || comp(insertLeaf->keys.back(), key))
+		if (this->count == 0 || cmp(insertLeaf->keys.back(), key))
 		{
 			insertLeaf->keys.push_back(key);
 			insertLeaf->values.push_back(tid);
@@ -73,7 +121,7 @@ template<class T, class CMP> void BTree<T, CMP>::insert(T key, TID tid)
 		else
 		{
 			auto low = lower_bound(insertLeaf->keys.begin(), 
-				                   insertLeaf->keys.end(), key, comp);
+				                   insertLeaf->keys.end(), key, cmp);
 			int index = distance(insertLeaf->keys.begin(), low);
 			insertLeaf->keys.emplace(low, key);
 			insertLeaf->values.emplace(index, tid);
@@ -84,7 +132,7 @@ template<class T, class CMP> void BTree<T, CMP>::insert(T key, TID tid)
 	// Second case: leaf is full -> add element and split node.
 	else
 	{
-		if (comp(insertLeaf->keys.back(), key))
+		if (cmp(insertLeaf->keys.back(), key))
 		{
 			insertLeaf->keys.push_back(key);
 			insertLeaf->values.push_back(tid);
@@ -92,7 +140,7 @@ template<class T, class CMP> void BTree<T, CMP>::insert(T key, TID tid)
 		else
 		{
 			auto low = lower_bound(insertLeaf->keys.begin(), 
-				                   insertLeaf->keys.end(), key, comp);
+				                   insertLeaf->keys.end(), key, cmp);
 			int index = distance(insertLeaf->keys.begin(), low);
 			insertLeaf->keys.emplace(low, key);
 			insertLeaf->values.emplace(index, tid);
@@ -141,7 +189,7 @@ template<class T, class CMP> void BTree<T, CMP>::splitNode(BTreeNode<T>* node)
 
 	// Median is larger than all other entries -> append median to end
 	// and update child pointers
-	if (parentNode->count == 0 || comp(parentNode->keys.back(), median))
+	if (parentNode->count == 0 || cmp(parentNode->keys.back(), median))
 	{
 		parentNode->values[parentNode->values.end()-1] = node; 
 		parentNode->keys.push_back(median);
@@ -154,7 +202,7 @@ template<class T, class CMP> void BTree<T, CMP>::splitNode(BTreeNode<T>* node)
 		// median, and insert the key (median) and the pointer to the
 		// newly created node at the appropriate locations
 		auto low = lower_bound(parentNode->keys.begin(), 
-			                   parentNode->keys.end(), median, comp);
+			                   parentNode->keys.end(), median, cmp);
 		int index = distance(parentNode->keys.begin(), low);
 		parentNode->keys.emplace(low, median);
 		parentNode->values.emplace(index+1, newNode);

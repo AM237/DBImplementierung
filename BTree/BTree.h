@@ -8,7 +8,18 @@
 #define BTREE_H
 
 #include "BTreeNode.h"
+#include "BTreeRangeIterator.h"
 #include <gtest/gtest.h>
+
+
+// Exception thrown when searching for key that is not found
+class KeyNotFoundException: public std::exception
+{
+  virtual const char* what() const throw() { return "Key not found"; }
+};
+
+// Forward declaration of the iterator
+template<class T, class CMP> class BTreeRangeIterator;
 
 // Class representing a B+ Tree. Parametrized to allow for generic element
 // storage and comparison. CMP is a class / struct implementing a binary 
@@ -37,12 +48,11 @@ public:
 	TID lookup(T key);
 	
 	// Returns an iterator to the first element of the result set.
-	void lookupRange(T start, T end);
+	// Iterator implements a next() method to retrieve new values.
+	BTreeRangeIterator<T, CMP>* lookupRange(T start, T end);
+
 
 private:
-
-	// Materializes the b tree to file.
-	void writeToFile();
 	
 	// Starting at the given node, navigates down the tree to the leaf node
 	// where the given key should be inserted. Returns pointer to that leaf.
@@ -54,18 +64,30 @@ private:
 	// Splits the given node and accomodates the entries along the split.
 	// Called recursively if necessary. Assumes given node has an overflow of 1
 	void splitNode(BTreeNode<T>* node);
+
+		// Materializes the b tree to file.
+	void writeToFile();
+
+	// Boolean comparison function, equivalent to comp
+	bool cmp(T key1, T key2);
 	
 	// Data structure to contain all nodes
 	std::vector<BTreeNode<T>*> nodes;
+
+	// Stores pointers to instantiated range iterators.
+	std::vector<BTreeRangeIterator<T, CMP>* > rangeIterators;
 	
 	// The root of the tree
 	BTreeNode<T>* root;
 
-	// Comparison predicate
-	CMP comp;
+	// Exception to be thrown if a key is not found during lookup.
+	KeyNotFoundException keyNotFound;
 
 	// Underflow / overflow parameters
 	uint64_t k, l;
+
+	// Comparison predicate
+	CMP comp;
 };
 
 #endif  // BTREE_H
