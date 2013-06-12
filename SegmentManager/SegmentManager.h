@@ -51,6 +51,9 @@ public:
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment* retrieveSegmentById(uint64_t segId);
 
+	// BufferManager handler
+	BufferManager* bm;
+
 private:
 
 	// The segment inventory, which contains the concrete mapping of segments
@@ -59,9 +62,6 @@ private:
 	
 	// The inventory managing the free space (and fragmentation) of the database
 	FreeSpaceInventory* spaceInv;
-	
-	// BufferManager handler
-	BufferManager* bm;
 	
 	// Segment manager parameters
 	SegManConst params;

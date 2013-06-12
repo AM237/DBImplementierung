@@ -7,6 +7,7 @@
 #ifndef BTREE_H
 #define BTREE_H
 
+#include "../SegmentManager/SegmentManager.h"
 #include "BTreeNode.h"
 #include "BTreeRangeIterator.h"
 #include <gtest/gtest.h>
@@ -31,7 +32,7 @@ public:
 	// Constructor. Inner nodes underflow at k entries, and overflow at 2k
 	// entries. Leaves underflow at l entries, and overflow at 2l entries.
 	// The root has either max 2k entries, or it is a leaf with max 2l entries.
-	BTree<T, CMP>(uint64_t k, uint64_t l);
+	BTree<T, CMP>(SegmentManager* sm, uint64_t k, uint64_t l);
 	
 	// Destructor
 	~BTree<T, CMP>();
@@ -65,7 +66,8 @@ private:
 	// Called recursively if necessary. Assumes given node has an overflow of 1
 	void splitNode(BTreeNode<T>* node);
 
-		// Materializes the b tree to file.
+	// Materializes the b tree to file. Calculates space requirements and saves
+	// a node per page.
 	void writeToFile();
 
 	// Boolean comparison function, equivalent to comp
@@ -76,6 +78,12 @@ private:
 
 	// Stores pointers to instantiated range iterators.
 	std::vector<BTreeRangeIterator<T, CMP>* > rangeIterators;
+
+	// The segment manager on which this tree operates
+	SegmentManager* sm;
+
+	// The segment on which this tree operates
+	uint64_t segId;	
 	
 	// The root of the tree
 	BTreeNode<T>* root;

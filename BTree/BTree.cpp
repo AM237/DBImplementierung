@@ -5,16 +5,21 @@
 
 
 #include "BTree.h"
+#include <assert.h>
 
 using namespace std;
 
 // _____________________________________________________________________________
-template<class T, class CMP> BTree<T, CMP>::BTree(uint64_t k, uint64_t l)
+template<class T, class CMP> BTree<T, CMP>::BTree(SegmentManager* sm, 
+	uint64_t k, uint64_t l)
 {
+	this->sm = sm;
 	this->k = k;
 	this->l = l;
 	root = new BTreeLeafNode<T>();
+	this->segId = sm->createSegment(true);
 }
+
 
 
 // _____________________________________________________________________________
@@ -23,7 +28,9 @@ template<class T, class CMP> BTree<T, CMP>::~BTree()
 	writeToFile();
 	delete root;
 	for (auto &node : nodes) delete node;
+	for (auto &it : rangeIterators) delete it;
 }
+
 
 
 // _____________________________________________________________________________
@@ -31,6 +38,7 @@ template<class T, class CMP> bool BTree<T, CMP>::cmp(T key1, T key2)
 {
 	return comp(key1, key2);
 }
+
 
 
 // _____________________________________________________________________________
@@ -68,9 +76,11 @@ template<class T, class CMP> TID BTree<T, CMP>::lookup(T key)
 }
 
 
+
 //______________________________________________________________________________
 template<class T, class CMP> bool BTree<T, CMP>::erase(T key)
 {
+	// Get leaf and use binary search to locate the given key.
 	auto leaf = navigateToLeaf(key);
 	if (leaf->count == 0) return false;
 	auto bounds = equal_range(leaf->keys.begin(), leaf->keys.end(), key, cmp);
@@ -151,7 +161,6 @@ template<class T, class CMP> void BTree<T, CMP>::insert(T key, TID tid)
 
 
 
-
 // _____________________________________________________________________________
 template<class T, class CMP> void BTree<T, CMP>::splitNode(BTreeNode<T>* node)
 {
@@ -210,4 +219,26 @@ template<class T, class CMP> void BTree<T, CMP>::splitNode(BTreeNode<T>* node)
 	}
 	// Parent node is also full -> split inner node (recursively)
 	if (parentNode->count > 2*k) splitNode(parentNode);
+}
+
+
+
+// _____________________________________________________________________________
+template<class T, class CMP> void BTree<T, CMP>::writeToFile()
+{
+	// Manage space requirements
+	Segment* bTreeSeg = sm->retrieveSegmentById(this->segId);
+	BufferManager* bm = sm->bm;
+	while (bTreeSeg->getSize() < nodes.size()) sm->growSegment(this->segId);
+
+	// Write a node per page
+	for (auto it = 0; it < nodes.size(); it++)
+	{
+		BTreeNode<T>* node = nodes[it];
+		assert(sizeof(node) <= constants::pageSize);
+		uint64_t pageNo = bTreeSeg->nextPage();
+		BufferFrame& bf = bm->fixPage(pageNo, true);
+		memcpy(bf.data(), &node, sizeof(node));
+		bm->unfixPage(bf, true);
+	}
 }
