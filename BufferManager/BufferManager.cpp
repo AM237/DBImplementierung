@@ -210,12 +210,13 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
         }
         bf->unlockFrame();
 	}
-	
+	bmlock.unlock();
 
 	// Case: page with pageId not buffered and space available in buffer
 	// -> read from file into a free buffer frame, and add an association
 	// between the pageId just read and the BufferFrame the data was read into
 	// in the hash table
+	bmlock.lock();
 	bool spaceFound = false;
 	bool allPagesFixed = true;
 	for (uint64_t i = 0; i < numFrames; i++)
@@ -238,12 +239,12 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 		if (!frame->pageFixed) allPagesFixed = false;
 	}
 
-
 	// Case: page with pageId not buffered and buffer full
 	// -> use replacement strategy to replace an unfixed page in buffer
 	// and update the frame lookup mechanism (hash table) accordingly.
 	// If no pages can be replaced, method is allowed to fail (via exception,
 	// block, etc.
+
     if(!spaceFound)
     {       	
     	// no pages can be replaced
@@ -299,10 +300,8 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 
 	// Write page back to disk if dirty, update dirty bit
 	if (isDirty)
-	{
-		
+	{	
 		flushFrameToFile(frame);
-		
 
 		// Data on disk now corresponds to data in buffer, so frame is
 		// no longer dirty	
