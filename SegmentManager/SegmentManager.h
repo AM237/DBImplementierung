@@ -51,10 +51,14 @@ public:
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment* retrieveSegmentById(uint64_t segId);
 
-	// BufferManager handler
-	BufferManager* bm;
+	// Returns a reference to the buffer manager.
+	BufferManager& getBufferManager();
+
 
 private:
+
+	// BufferManager handler
+	BufferManager* bm;
 
 	// The segment inventory, which contains the concrete mapping of segments
 	// (ids) to the locations (page ranges) of their extents.

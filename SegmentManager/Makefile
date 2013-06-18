@@ -22,7 +22,7 @@ compile: subdirs $(MAIN_BINARIES) $(TEST_BINARIES)
 test: subdirs $(TEST_BINARIES)
 	 for T in $(TEST_BINARIES); do ./$$T; done
 
-clean: cleansubdirs
+cleanhere: 
 	rm -f *\~
 	rm -f *.o
 	rm -f $(MAIN_BINARIES)
@@ -32,6 +32,8 @@ clean: cleansubdirs
 
 cleansubdirs:
 	for T in $(SUBDIRS); do cd $$T && make clean; done
+
+clean: cleansubdirs cleanhere
 	
 release: clean compile
 	mv $(MAIN_BINARIES) ./bin

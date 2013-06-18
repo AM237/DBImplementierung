@@ -12,7 +12,6 @@
 #include <sys/mman.h>
 
 using namespace std;
-using namespace constants;
 
 //_____________________________________________________________________________
 void TwoQueueReplacer::pageFixedFirstTime(BufferFrame* frame)
@@ -57,9 +56,7 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
 	{   
 		it--; 
 		BufferFrame* bf = *it;
-		
-		if(bf == NULL) continue;
-		
+		if(bf == nullptr) continue;
 		if (!bf->pageFixed)
 		{
             fifo.erase(it);
@@ -67,42 +64,39 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             // free data in frame, update frame lookup mechanism
             // note: since page in frame is unfixed, it is also clean, since
             // dirty pages are written back to disk when they are unfixed.
-            if (munmap(bf->data, constants::pageSize) < 0)
+            if (munmap(bf->data, BM_CONS::pageSize) < 0)
             {
             	cout << "Failed unmapping main memory: " << errno << endl;
 				exit(1);            
             }
-            bf->data = NULL;
-            
-            FrameReplacer::hasher->remove(bf->pageId);
+            bf->data = nullptr;
+            hasher->remove(bf->pageId);
 			return bf;
 		}
+		
 	}
 
 	for(std::list<BufferFrame*>::iterator it=lru.end(); it != lru.begin(); )
 	{   
 		it--;
 		BufferFrame* bf = *it;
-
-		if(bf == NULL) continue;
-			
+		if(bf == nullptr) continue;
 		if (!bf->pageFixed)
 		{
 			lru.erase(it);
             
             // reset frame
-            if (munmap(bf->data, constants::pageSize) < 0)
+            if (munmap(bf->data, BM_CONS::pageSize) < 0)
             {
             	cout << "Failed unmapping main memory: " << errno << endl;
 				exit(1);            
             }
-            bf->data = NULL;
-            FrameReplacer::hasher->remove(bf->pageId);
-			return bf;
+            bf->data = nullptr;
+            hasher->remove(bf->pageId);
+         	return bf;
 		}
 	}
-
-    return NULL;
+    return nullptr;
 }
 
 

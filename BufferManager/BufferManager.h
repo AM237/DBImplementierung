@@ -12,12 +12,11 @@
 #include "FrameReplacer.h"
 #include <mutex>
 
-
 // ***************************************************************************
-// Constants
+// BM_CONS
 // ***************************************************************************
 
-namespace constants
+namespace BM_CONS
 {
 	// Page size should be a multiple of the size of a page in virtual memory
 	// const int pageSize = sysconf(_SC_PAGE_SIZE);
@@ -28,68 +27,46 @@ namespace constants
 	const int defaultNumPages = 50;
 }
 
-// ***************************************************************************
-// Structs, templates, types, exceptions, etc.
-// ***************************************************************************
 
+// ***************************************************************************
+// Structs, exceptions
+// ***************************************************************************
 
 class ReplaceFailAllFramesFixed: public std::exception
 {
   virtual const char* what() const throw()
-  {
-    return "BufferManager could not replace frame - all frames are fixed.";
-  }
+  { return "BufferManager could not replace frame - all frames are fixed."; }
 };
 
 
 class ReplaceFailFrameUnclean: public std::exception
 {
   virtual const char* what() const throw()
-  {
-    return "Suggested frame for replacement is not clean.";
-  }
+  { return "Suggested frame for replacement is not clean."; }
 };
 
 
 class ReplaceFailNoFrameSuggested: public std::exception
 {
   virtual const char* what() const throw()
-  {
-    return "No frame was suggested for replacement";
-  }
+  { return "No frame was suggested for replacement"; }
 };
 
 
-// Implements RAII on a given lock
-class ScopedLock
-{
-public:
-
-	ScopedLock(std::mutex& lock) : m(lock) { }
-	~ScopedLock() {  m.unlock();  } 
-	
-private:
-	
-	std::mutex& m;
-};
-
 
 // ***************************************************************************
-// Core Classes
+// Classes
 // ***************************************************************************
-
 
 // Manages page IO to/in main memory
 class BufferManager
 {
-
 public:
-
 	// Creates a new instance that manages #size frames and operates on the
 	// file 'filename'
 	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferManager(const std::string& filename, uint64_t size, 
-				  int numPages=constants::defaultNumPages);
+				  int numPages=BM_CONS::defaultNumPages);
 				  
 	// Destructor. Write all dirty frames to disk and free all resources.
 	~BufferManager();
@@ -112,8 +89,8 @@ public:
 	// in the form [start, end)
 	std::pair<uint64_t, uint64_t> growDB(uint64_t numPages);
 
+
 private:
-	
 	// Reads page with pageID into frame, updates hash table. The page becomes
 	// fixed in the frame, and is not dirty.
 	FRIEND_TEST(BufferManagerTest, readPageIntoFrame);
@@ -133,11 +110,8 @@ private:
 	FrameReplacer* replacer;
 	
 	// Hash proxy, supporting queries for pages given their id
+	// Stores references to frames, both fixed and unfixed.
 	BufferHasher* hasher;
-    
-    // The pool of buffer frames, is instantiated and filled
-	// on construction of the BufferManager object
-	std::vector<BufferFrame*> framePool;
 
 	// The number of frames to be managed
 	uint64_t numFrames;
@@ -146,15 +120,13 @@ private:
 	uint64_t numPages;
 	
 	// Handler to file with pages on disk. At all times, the file is assumed 
-	// to contain a multiple of constants::pageSize bytes. The pages
+	// to contain a multiple of BM_CONS::pageSize bytes. The pages
 	// are assumed to be numered 0 ... n-1.
 	int fileDescriptor;
 
-	// TODO	
-	//pthread_rwlock_t lock;
-	 std::mutex lock;
-	// std::mutex unfixlock;
-		
+	// Handle concurrent access to the BM's data structures and procedures
+	 std::mutex bmlock;
+
 };
 
 #endif  // BUFFERMANAGER_H

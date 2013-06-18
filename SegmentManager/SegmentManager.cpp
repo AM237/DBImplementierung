@@ -49,6 +49,14 @@ Segment* SegmentManager::retrieveSegmentById(uint64_t segId)
 	return segInv->getSegment(segId);
 }
 
+
+// _____________________________________________________________________________
+BufferManager& SegmentManager::getBufferManager()
+{
+	return *bm;
+}
+
+
 // _____________________________________________________________________________
 uint64_t SegmentManager::createSegment(bool visible)
 {	

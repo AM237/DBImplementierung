@@ -6,7 +6,6 @@
 
 #ifndef BTREE_H
 #define BTREE_H
-
 #include "../SegmentManager/SegmentManager.h"
 #include "BTreeNode.h"
 #include "BTreeRangeIterator.h"
@@ -32,10 +31,10 @@ public:
 	// Constructor. Inner nodes underflow at k entries, and overflow at 2k
 	// entries. Leaves underflow at l entries, and overflow at 2l entries.
 	// The root has either max 2k entries, or it is a leaf with max 2l entries.
-	BTree<T, CMP>(SegmentManager* sm, uint64_t k, uint64_t l);
+	BTree(SegmentManager* sm, uint64_t k, uint64_t l);
 	
 	// Destructor
-	~BTree<T, CMP>();
+	~BTree();
 	
 	// Inserts a new key/TID pair into the tree. Does not support non-unique
 	// entries.
@@ -87,9 +86,6 @@ private:
 	
 	// The root of the tree
 	BTreeNode<T>* root;
-
-	// Exception to be thrown if a key is not found during lookup.
-	KeyNotFoundException keyNotFound;
 
 	// Underflow / overflow parameters
 	uint64_t k, l;

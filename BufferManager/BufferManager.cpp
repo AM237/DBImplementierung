@@ -4,9 +4,12 @@
 
 
 #include "BufferManager.h"
+#include "ScopedLock.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 
+#include <chrono>
+#include <thread>
 using namespace std;
 
 //______________________________________________________________________________
@@ -28,12 +31,6 @@ BufferManager::BufferManager(const string& filename, uint64_t size,
 
 	// Initialize frame replacer
 	replacer = new TwoQueueReplacer(hasher);
-
-	// Initialize buffer frame pool
-	for (unsigned int i = 0; i < size; i++)
-		framePool.push_back(new BufferFrame());
-		
-	//lock = PTHREAD_RWLOCK_INITIALIZER;
 }
 
 
@@ -43,22 +40,22 @@ int BufferManager::initializeDatabase(const char* filename)
 	FILE* dbFile = fopen(filename, "r");
  	
  	// If file not existent, create standard file with n pages
- 	if (dbFile == NULL)
+ 	if (dbFile == nullptr)
   	{
   		if (errno == ENOENT)
   		{
   			dbFile = fopen (filename,"w+b");
-  			if (dbFile == NULL)
+  			if (dbFile == nullptr)
   			{
   				cout << "Error creating database file (opening)" << endl;
   				exit(1);
   			}
   		
   			vector<uint64_t> pages;
-  			pages.resize(numPages*constants::pageSize/sizeof(uint64_t), 0);
+  			pages.resize(numPages*BM_CONS::pageSize/sizeof(uint64_t), 0);
 
 			if (write(fileno(dbFile), pages.data(), 
-			    numPages*constants::pageSize) < 0)
+			    numPages*BM_CONS::pageSize) < 0)
 			{
 				cout <<"Error creating database file (writing): "<<errno <<endl;
 				exit(1);
@@ -86,8 +83,8 @@ int BufferManager::initializeDatabase(const char* filename)
 		
 		uint64_t fileBytes = ftell(dbFile);
 
-		if (fileBytes % constants::pageSize != 0 ||
-		    fileBytes < numPages * constants::pageSize)
+		if (fileBytes % BM_CONS::pageSize != 0 ||
+		    fileBytes < numPages * BM_CONS::pageSize)
 		{			
 			cout << "Database file is not formatted correctly" << endl;
 			exit(1);
@@ -130,7 +127,7 @@ std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
 
 	// write page
 	vector<uint64_t> pageData;
-	uint64_t totalBytes = pages*constants::pageSize;
+	uint64_t totalBytes = pages*BM_CONS::pageSize;
 	pageData.resize(totalBytes/sizeof(uint64_t), 0);
 	if (write(fileDescriptor, pageData.data(), totalBytes) < 0)
 	{
@@ -149,9 +146,9 @@ void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
 {
 	// Read page from file into main memory. 
 	// Page begins at pageId * pageSize bytes	
-	char* memLoc = static_cast<char*>(mmap(NULL, constants::pageSize, 
+	char* memLoc = static_cast<char*>(mmap(nullptr, BM_CONS::pageSize, 
 					PROT_READ | PROT_WRITE, MAP_SHARED, fileDescriptor, 
-					pageId * constants::pageSize));				
+					pageId * BM_CONS::pageSize));				
 
 	if (memLoc == MAP_FAILED)
 	{
@@ -176,14 +173,14 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 	uint64_t pageId = frame.pageId;
 
 	// seek to correct position in file
-	if (lseek(fileDescriptor, pageId*constants::pageSize, SEEK_SET) < 0)
+	if (lseek(fileDescriptor, pageId*BM_CONS::pageSize, SEEK_SET) < 0)
 	{
 		cout << "Error seeking for page on disk" << endl;
 		exit(1);
 	}
 
 	// write page
-	if (write(fileDescriptor, frame.getData(), constants::pageSize) < 0)
+	if (write(fileDescriptor, frame.getData(), BM_CONS::pageSize) < 0)
 	{
 		cout << "Error writing page back to disk:" << errno << endl;
 		exit(1);
@@ -193,25 +190,27 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 
 //______________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
-{
-
- 	lock.lock();
- 	
+{ 	
 	// Case: page with pageId is buffered -> return page directly
+	bmlock.lock();
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
 	for (size_t i = 0; i < frames->size(); i++)
 	{
 		BufferFrame* bf = frames->at(i);
-		if (bf->pageId == pageId)
+		if(!bf->tryLockFrame(true))
         {
-        	//bf->lock.lock();
-        	
+           	bmlock.unlock();
+            return fixPage(pageId, exclusive);
+        }
+		if (bf->pageId == pageId)
+        {   	
             replacer->pageFixedAgain(bf);
-
-			//ScopedLock scoped(lock);
+            bmlock.unlock();
 			return *bf;
         }
+        bf->unlockFrame();
 	}
+	
 
 	// Case: page with pageId not buffered and space available in buffer
 	// -> read from file into a free buffer frame, and add an association
@@ -219,20 +218,23 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// in the hash table
 	bool spaceFound = false;
 	bool allPagesFixed = true;
-	for (size_t i = 0; i < framePool.size(); i++)
+	for (uint64_t i = 0; i < numFrames; i++)
 	{
-		BufferFrame* frame = framePool.at(i);
-		if (frame->getData() == NULL)
+		BufferFrame* frame = hasher->nextFrame();
+		if(!frame->tryLockFrame(true))
+        {
+           	bmlock.unlock();
+            return fixPage(pageId, exclusive);
+        }
+		if (frame->getData() == nullptr)
 		{
-			//frame->lock.lock();
-			
-            replacer->pageFixedFirstTime(frame);
-			readPageIntoFrame( pageId, frame );
-			spaceFound = true;
-		
-			//ScopedLock scoped(lock);
+        	spaceFound = true;
+            readPageIntoFrame(pageId, frame);
+            replacer->pageFixedFirstTime(frame);            
+            bmlock.unlock();
 			return *frame;
 		}
+		frame->unlockFrame();
 		if (!frame->pageFixed) allPagesFixed = false;
 	}
 
@@ -241,7 +243,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// -> use replacement strategy to replace an unfixed page in buffer
 	// and update the frame lookup mechanism (hash table) accordingly.
 	// If no pages can be replaced, method is allowed to fail (via exception,
-	// block, etc.)
+	// block, etc.
     if(!spaceFound)
     {       	
     	// no pages can be replaced
@@ -250,66 +252,65 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
     		ReplaceFailAllFramesFixed fail;
        	 	throw fail;
     	}
-    	    	
+   
        	BufferFrame* frame = replacer->replaceFrame();
-       	
+       	if(!frame->tryLockFrame(true))
+        {
+           	bmlock.unlock();
+            fixPage(pageId, exclusive);
+        }
+
        	// should never be the case?
-       	if (frame == NULL)
+       	if (frame == nullptr)
        	{
 			ReplaceFailNoFrameSuggested fail;
 			throw fail;
        	}
        	
        	// should always be the case
-       	if (frame->getData() == NULL)
-  		{
-  			//frame->lock.lock();
-  			
-       		replacer->pageFixedFirstTime(frame);
-			readPageIntoFrame( pageId, frame );
-		
-			//ScopedLock scoped(lock);
+       	if (frame->getData() == nullptr)
+  		{ 
+			readPageIntoFrame(pageId, frame);
+  			replacer->pageFixedFirstTime(frame);
+  			bmlock.unlock();
 			return *frame;
 
 		} else {
-
 			ReplaceFailFrameUnclean fail;
 			throw fail;
 		}
 	}
 
+
 	// Is never returned, because exactly one case above is true
-	BufferFrame* bf = new BufferFrame();
-	return *bf;
+	//BufferFrame* bf = new BufferFrame();
+	return *(new BufferFrame());
 }
 
 //______________________________________________________________________________
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
-{
-	//unfixlock.lock();
-	
+{	
 	// Note: frame is a reference to an existing buffer frame in the pool.
 	// Therefore, it suffices to directly set the page as candidate for
 	// replacement.
+	bmlock.lock();
 	frame.isDirty = isDirty;
 	frame.pageFixed = false;
 
 	// Write page back to disk if dirty, update dirty bit
 	if (isDirty)
 	{
+		
 		flushFrameToFile(frame);
+		
 
 		// Data on disk now corresponds to data in buffer, so frame is
 		// no longer dirty	
 		frame.isDirty = false;
-
 	}
-
-
-	//unfixlock.unlock();
-	//frame.lock.unlock();
-	lock.unlock();
-	//pthread_rwlock_unlock(&lock);
+	frame.unlockFrame();
+	bmlock.unlock();
+	
 }
 
 //______________________________________________________________________________
@@ -317,24 +318,6 @@ BufferManager::~BufferManager()
 {	
 	// Write all dirty frames to disk + clean main memory
 	// Note: order in which deletes occur is important	
-	for (size_t i = 0; i < framePool.size(); i++)
-	{
-		BufferFrame* frame = framePool[i];
-		if (frame->getData() != NULL && frame->isDirty)
-			flushFrameToFile(*frame);
-
-		// delete data in frame
-		if (frame != NULL)
-		{
-			if (munmap(frame->data, constants::pageSize) < 0)
-            {
-            	cout << "Destructor: failed unmapping main memory: " 
-            	     << errno << endl;
-				exit(1);            
-            }
-			delete frame;
-		}
-	}
 
 	// Close file with pages
 	close(fileDescriptor);

@@ -42,9 +42,9 @@ public:
 	//      keyStart != nullptr, keyEnd != nullptr : [keyStart, keyEnd]
 	//		keyStart == nullptr, keyEnd == nullptr: not defined
 	// TODO: one side unbounded
-	BTreeRangeIterator<T, CMP>(BTree<T, CMP>* btree, T* keyStart, T* keyEnd); 
+	BTreeRangeIterator(BTree<T, CMP>* btree, T* keyStart, T* keyEnd); 
 
-	~BTreeRangeIterator<T, CMP>() { }
+	~BTreeRangeIterator() { }
 
 	// Returns the next TID in the range specified by [keyStart, keyEnd]
 	TID next();

@@ -9,20 +9,20 @@
 
 using namespace std;
 
-
+/*
 // _____________________________________________________________________________
 TEST(BufferManagerTest, flushFrameToFile)
 {
 	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
- 	vector<char> aVec(constants::pageSize, 'a');
- 	vector<char> bVec(constants::pageSize, 'b');
- 	vector<char> cVec(constants::pageSize, 'c');
+ 	vector<char> aVec(BM_CONS::pageSize, 'a');
+ 	vector<char> bVec(BM_CONS::pageSize, 'b');
+ 	vector<char> cVec(BM_CONS::pageSize, 'c');
 
-	if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
-		(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
-		(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+	if ((write(fileno(testFile), aVec.data(), BM_CONS::pageSize) < 0) ||
+		(write(fileno(testFile), bVec.data(), BM_CONS::pageSize) < 0) ||
+		(write(fileno(testFile), cVec.data(), BM_CONS::pageSize) < 0))
 			std::cout << "error writing to testFile" << endl;
 
 	fclose(testFile);
@@ -47,8 +47,8 @@ TEST(BufferManagerTest, flushFrameToFile)
 	for(int j = 0; j < 3; j++)
 	{
 		vector<char> input;
-		input.resize(constants::pageSize);
-		if (read(fileno(testFile), input.data(), constants::pageSize) < 0)
+		input.resize(BM_CONS::pageSize);
+		if (read(fileno(testFile), input.data(), BM_CONS::pageSize) < 0)
 		std::cout << "error reading from testFile" << endl;
 		
 		for (size_t i = 0; i < input.size(); i++)
@@ -73,13 +73,13 @@ TEST(BufferManagerTest, readPageIntoFrame)
 	// Write a test file with 3 pages, filled with 'a', 'b', and 'c' resp.
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
- 	vector<char> aVec(constants::pageSize, 'a');
- 	vector<char> bVec(constants::pageSize, 'b');
- 	vector<char> cVec(constants::pageSize, 'c');
+ 	vector<char> aVec(BM_CONS::pageSize, 'a');
+ 	vector<char> bVec(BM_CONS::pageSize, 'b');
+ 	vector<char> cVec(BM_CONS::pageSize, 'c');
 
-	if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
-		(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
-		(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+	if ((write(fileno(testFile), aVec.data(), BM_CONS::pageSize) < 0) ||
+		(write(fileno(testFile), bVec.data(), BM_CONS::pageSize) < 0) ||
+		(write(fileno(testFile), cVec.data(), BM_CONS::pageSize) < 0))
 		std::cout << "error writing to testFile" << endl;
 
 	fclose(testFile);
@@ -96,7 +96,7 @@ TEST(BufferManagerTest, readPageIntoFrame)
 		ASSERT_TRUE(bf->pageFixed);
 		
 		char* data = static_cast<char*>(bf->getData());
-		for (int j = 0; j < constants::pageSize; j++)
+		for (int j = 0; j < BM_CONS::pageSize; j++)
 		{
 			if (i == 0) ASSERT_EQ(data[j], 'a');
 			if (i == 1) ASSERT_EQ(data[i], 'b');
@@ -118,15 +118,15 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	FILE* testFile;
 
  	testFile = fopen ("testFile", "wb");
- 	vector<char> aVec(constants::pageSize, 'a');
- 	vector<char> bVec(constants::pageSize, 'b');
- 	vector<char> cVec(constants::pageSize, 'c');
+ 	vector<char> aVec(BM_CONS::pageSize, 'a');
+ 	vector<char> bVec(BM_CONS::pageSize, 'b');
+ 	vector<char> cVec(BM_CONS::pageSize, 'c');
    	
 
  	for (unsigned i=0; i<50; i++)
-		if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
-			(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
-			(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+		if ((write(fileno(testFile), aVec.data(), BM_CONS::pageSize) < 0) ||
+			(write(fileno(testFile), bVec.data(), BM_CONS::pageSize) < 0) ||
+			(write(fileno(testFile), cVec.data(), BM_CONS::pageSize) < 0))
 				std::cout << "error writing to testFile" << endl;
 			
 
@@ -138,18 +138,18 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	// page contains 'a's, 'b's, and 'c's respectively
 	BufferFrame& aFrame = bm->fixPage(0, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& bFrame = bm->fixPage(1, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& cFrame = bm->fixPage(2, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	
 	// buffer full and all pages fixed: should throw exception
 	ASSERT_THROW(bm->fixPage(3, false), ReplaceFailAllFramesFixed);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 		
 	// set candidate for replacement
 
@@ -160,15 +160,15 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	BufferFrame& secondAFrame = bm->fixPage(3, false);
 	//pthread_rwlock_unlock(&(bm->lock));
 
-	bm->lock.unlock();
-	for (int i = 0; i < constants::pageSize; i++)
+	//bm->lock.unlock();
+	for (int i = 0; i < BM_CONS::pageSize; i++)
 		ASSERT_EQ(((char*)secondAFrame.getData())[i], 'a');
 		
 	// buffer full and all pages fixed:
 	// should throw exception if new page requested
 	ASSERT_THROW(bm->fixPage(4, false), ReplaceFailAllFramesFixed);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	bm->unfixPage(cFrame, false);
 	
 
@@ -176,12 +176,12 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	// buffer now contains pages 0, 3, 6
 	BufferFrame& thirdAFrame = bm->fixPage(6, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
-	for (int i = 0; i < constants::pageSize; i++)
+	//bm->lock.unlock();
+	for (int i = 0; i < BM_CONS::pageSize; i++)
 		ASSERT_EQ(((char*)thirdAFrame.getData())[i], 'a');
 		
 	// Unfix pages: update data, then check contents on disk
-	for (int i = 0; i < constants::pageSize; i++)
+	for (int i = 0; i < BM_CONS::pageSize; i++)
 	{
 		((char*)aFrame.getData())[i] = 'd';
 		((char*)secondAFrame.getData())[i] = 'd';
@@ -200,19 +200,19 @@ TEST(BufferManagerTest, fixUnfixPageWithReplace)
 	for (size_t i = 0; i < seek.size(); i++)
 	{
 		vector<char> inputBuffer;
-		inputBuffer.resize(constants::pageSize);
+		inputBuffer.resize(BM_CONS::pageSize);
 
-		if (lseek(fileno(testFile), seek[i]*constants::pageSize, SEEK_SET) < 0)
+		if (lseek(fileno(testFile), seek[i]*BM_CONS::pageSize, SEEK_SET) < 0)
 		{
 			cout << "Error seeking for page on disk" << endl;
 			exit(1);
 		}
 		
 
-		if (read(fileno(testFile), inputBuffer.data(), constants::pageSize) < 0)
+		if (read(fileno(testFile), inputBuffer.data(), BM_CONS::pageSize) < 0)
 			cout << "Error reading from testFile";
 			
-		for (int j = 0; j < constants::pageSize; j++)
+		for (int j = 0; j < BM_CONS::pageSize; j++)
 			ASSERT_EQ(inputBuffer[j], 'd');
 	}
 	
@@ -234,14 +234,14 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	// Write a test file with 150 pages
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
- 	vector<char> aVec(constants::pageSize, 'a');
- 	vector<char> bVec(constants::pageSize, 'b');
- 	vector<char> cVec(constants::pageSize, 'c');
+ 	vector<char> aVec(BM_CONS::pageSize, 'a');
+ 	vector<char> bVec(BM_CONS::pageSize, 'b');
+ 	vector<char> cVec(BM_CONS::pageSize, 'c');
    	
  	for (unsigned i=0; i<50; i++)
-		if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0) ||
-			(write(fileno(testFile), bVec.data(), constants::pageSize) < 0) ||
-			(write(fileno(testFile), cVec.data(), constants::pageSize) < 0))
+		if ((write(fileno(testFile), aVec.data(), BM_CONS::pageSize) < 0) ||
+			(write(fileno(testFile), bVec.data(), BM_CONS::pageSize) < 0) ||
+			(write(fileno(testFile), cVec.data(), BM_CONS::pageSize) < 0))
 				std::cout << "error writing to testFile" << endl;
 			
 	fclose(testFile);
@@ -252,13 +252,13 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	// page contains 'b's, 'c's, and 'a's respectively
 	BufferFrame& bFrame = bm->fixPage(1, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& cFrame = bm->fixPage(5, false);
 	// pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& aFrame = bm->fixPage(9, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 
 	// BufferFrame pool: only 3 pages initialized with data
 	int count = 0;
@@ -291,14 +291,14 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	BufferFrame& cBufferedFrame = bm->fixPage(5, false);
 	//pthread_rwlock_unlock(&(bm->lock));
 
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& newCFrame = bm->fixPage(11, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	BufferFrame& aBufferedFrame = bm->fixPage(9, false);
 	//pthread_rwlock_unlock(&(bm->lock));
 
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	
 	// BufferHasher after: bucket for newCFrame has exactly two entries
 	ASSERT_EQ(hasher->hashTable[hasher->hash(1)].size(), 2);
@@ -324,13 +324,12 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	BufferFrame& aFrameFromLRU = bm->fixPage(9, false);
 	//pthread_rwlock_unlock(&(bm->lock));
 
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	ASSERT_EQ(replacer->lru.front()->pageId, 9);
 	
 	// Check frame contents
-	for (int i = 0; i < constants::pageSize; i++)
+	for (int i = 0; i < BM_CONS::pageSize; i++)
 	{
-
 		ASSERT_EQ(((char*)aFrame.getData())[i], 'a');
 		ASSERT_EQ(((char*)bFrame.getData())[i], 'b');
 		ASSERT_EQ(((char*)cFrame.getData())[i], 'c');
@@ -343,27 +342,27 @@ TEST(BufferManagerTest, fixPageNoReplaceAndDestructor)
 	// Fill frame buffer pool, expect an exception to be thrown
 	bm->fixPage(12, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	bm->fixPage(13, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	bm->fixPage(14, false);
 
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	bm->fixPage(15, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 
 	bm->fixPage(16, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	bm->fixPage(17, false);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	ASSERT_THROW(bm->fixPage(18, false), ReplaceFailAllFramesFixed);
 	//pthread_rwlock_unlock(&(bm->lock));
-	bm->lock.unlock();
+	//bm->lock.unlock();
 	
 	// Cleanup
 	delete bm;
@@ -380,10 +379,10 @@ TEST(BufferManagerTest, constructor)
 	// Write a test file with 50 pages
 	FILE* testFile;
  	testFile = fopen ("testFile", "wb");
-   	vector<char> aVec(constants::pageSize, 'a');
+   	vector<char> aVec(BM_CONS::pageSize, 'a');
    	
  	for (unsigned i=0; i<50; i++)
-		if ((write(fileno(testFile), aVec.data(), constants::pageSize) < 0))			
+		if ((write(fileno(testFile), aVec.data(), BM_CONS::pageSize) < 0))			
 			std::cout << "error writing to testFile" << endl;
 			
 	fclose(testFile);
@@ -433,7 +432,7 @@ TEST(BufferManagerTest, constructor)
   		cout << "Error removing testFile" << endl;
 }
 
-
+*/
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {

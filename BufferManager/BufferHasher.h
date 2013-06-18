@@ -12,6 +12,7 @@
 #include <vector>
 
 
+
 // Lookup proxy component for external classes, keeps track of
 // pages / buffer frames in the page / frame pool.
 // Implements a hash table as a lookup mechanism
@@ -22,61 +23,55 @@ public:
 
 	// Constructor, defines how many buckets in the table
 	FRIEND_TEST(BufferManagerTest, constructor);
-	BufferHasher(uint64_t tableSize) 
-	{ 
-		size = tableSize;
-		locks = new std::vector<std::mutex>(size);
-		for(unsigned int i = 0; i < size; i++)
-		{
-			std::vector<BufferFrame*> initial;
-			hashTable.push_back(initial);
-		}
-	}
+	BufferHasher(uint64_t tableSize);
 	
-	~BufferHasher() { delete locks; }
-
+	// Destructor, deletes dynamic storage used for frames
+	~BufferHasher();
+	
 	// Given a page id returns the index of the bucket in the
 	// hash table, in the range [0, tableSize)
-	uint64_t hash(uint64_t pageId) { return pageId % size; }
+	uint64_t hash(uint64_t pageId);
 	
 	// Add an association between the given pageId and a BufferFrame
-	void insert(uint64_t pageId, BufferFrame* bf)
-	{
-		hashTable[hash(pageId)].push_back(bf);
-	}
-	
-	// Returns references to all of the BufferFrames associated with
-	// the given pageId
-	std::vector<BufferFrame*>* lookup(uint64_t pageId)
-	{
-		return &hashTable[hash(pageId)]; 
-	}
+	void insert(uint64_t pageId, BufferFrame* bf);
 	
 	// Removes the association between the given pageId and the
 	// stored BufferFrame for this pageId, if such BufferFrame exists
-	void remove(uint64_t pageId)
-	{
-		std::vector<BufferFrame*>* frames = lookup(pageId);
-		for (size_t i = 0; i < frames->size(); i++)
-			if(frames->at(i)->pageId == pageId)
-			{
-				frames->erase(frames->begin()+i);
-				break;
-			}
-	}
+	void remove(uint64_t pageId);
+	
+	// Returns references to all of the BufferFrames associated with
+	// the given pageId
+	std::vector<BufferFrame*>* lookup(uint64_t pageId);
 
+	// Locks the bucket corresponding to the given non hashed value
+	void lockBucket(uint64_t value);
+
+	// Unlocks the bucket corresponding to the given non hashed value
+	void unlockBucket(uint64_t value);
+
+	// Iterate through frames (cyclic) managed by this hasher
+	BufferFrame* nextFrame();
+
+	std::mutex lock;
+	
 
 private:
 
-	uint64_t size;
-
-	// Hash table
+	// Hash table, at all times contains pointers to all fixed frames
 	FRIEND_TEST(BufferManagerTest, fixPageNoReplaceAndDestructor);
 	std::vector< std::vector<BufferFrame*> > hashTable;
 	
     // Handle concurrent access
 	std::vector<std::mutex>* locks;
 
+	// A vector containing all fixed as well as unfixed frames
+	std::vector<BufferFrame*> framePool;
+
+	// The number of frames managed by this hasher
+	uint64_t size;
+
+	// The current iterator index
+	uint64_t currentFrameIndex;
 };
 
 

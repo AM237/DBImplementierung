@@ -69,6 +69,7 @@ template<class T, class CMP> TID BTree<T, CMP>::lookup(T key)
 {
 	// Get leaf and use binary search to locate the given key.
 	auto leaf = navigateToLeaf(key, root);
+	KeyNotFoundException keyNotFound;
 	if (leaf->count == 0) throw keyNotFound;
 	auto bounds = equal_range(leaf->keys.begin(), leaf->keys.end(), key, cmp);
 	if (bounds.first == bounds.second) throw keyNotFound;
@@ -228,7 +229,7 @@ template<class T, class CMP> void BTree<T, CMP>::writeToFile()
 {
 	// Manage space requirements
 	Segment* bTreeSeg = sm->retrieveSegmentById(this->segId);
-	BufferManager* bm = sm->bm;
+	BufferManager& bm = sm->getBufferManager();
 	while (bTreeSeg->getSize() < nodes.size()) sm->growSegment(this->segId);
 
 	// Write a node per page
@@ -237,8 +238,8 @@ template<class T, class CMP> void BTree<T, CMP>::writeToFile()
 		BTreeNode<T>* node = nodes[it];
 		assert(sizeof(node) <= constants::pageSize);
 		uint64_t pageNo = bTreeSeg->nextPage();
-		BufferFrame& bf = bm->fixPage(pageNo, true);
+		BufferFrame& bf = bm.fixPage(pageNo, true);
 		memcpy(bf.data(), &node, sizeof(node));
-		bm->unfixPage(bf, true);
+		bm.unfixPage(bf, true);
 	}
 }

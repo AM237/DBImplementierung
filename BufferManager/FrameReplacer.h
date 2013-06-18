@@ -10,6 +10,7 @@
 
 #include "FrameReplacer.h"
 #include <list>
+#include <mutex>
 
 // Abstract class, represents a frame replacement strategy for BufferManager
 class FrameReplacer
@@ -78,7 +79,10 @@ private:
 	std::list<BufferFrame*> fifo;
 	
 	// The LRU queue
-	std::list<BufferFrame*>  lru;	
+	std::list<BufferFrame*>  lru;
+
+	// Concurrent access control
+	std::mutex replacerLock;
 };
 
 
