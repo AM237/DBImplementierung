@@ -73,7 +73,6 @@ BufferFrame* TwoQueueReplacer::replaceFrame()
             hasher->remove(bf->pageId);
 			return bf;
 		}
-		
 	}
 
 	for(std::list<BufferFrame*>::iterator it=lru.end(); it != lru.begin(); )

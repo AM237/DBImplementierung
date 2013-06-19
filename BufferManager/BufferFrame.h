@@ -29,8 +29,11 @@ public:
 	FRIEND_TEST(BufferManagerTest, constructor);
 	BufferFrame() 
 	{ 
-		data = nullptr; 
-		lock = PTHREAD_RWLOCK_INITIALIZER;
+		data = nullptr;
+		pthread_rwlock_init(&syslock, NULL);
+		pthread_rwlock_init(&userlock, NULL);
+		//syslock = PTHREAD_RWLOCK_INITIALIZER;
+		//userlock = PTHREAD_RWLOCK_INITIALIZER;
 	}
 
 	// Destructor. Does not take responsiblity for deleting data pointer.
@@ -40,23 +43,34 @@ public:
 	void* getData() { return data; }
 
 	// Lock this frame in shared or exclusive mode.
-	void lockFrame(bool write) 
+	void lockFrame(bool write, bool sys) 
 	{ 
-		if (write) pthread_rwlock_wrlock(&lock);
-		else  	   pthread_rwlock_rdlock(&lock);
+		if (sys)
+		if (write) pthread_rwlock_wrlock(&syslock);
+		else  	   pthread_rwlock_rdlock(&syslock);
+
+		else
+		if (write) pthread_rwlock_wrlock(&userlock);
+		else  	   pthread_rwlock_rdlock(&userlock);
 	}
 
 	// Lock this frame in shared or exclusive mode.
-	bool tryLockFrame(bool write) 
+	bool tryLockFrame(bool write, bool sys) 
 	{ 
-		if (write) return pthread_rwlock_trywrlock(&lock) == 0 ? true : false;
-		else  	   return pthread_rwlock_tryrdlock(&lock) == 0 ? true : false;
+		if (sys) 
+		if (write) return pthread_rwlock_trywrlock(&syslock) == 0 ? true:false;
+		else  	   return pthread_rwlock_tryrdlock(&syslock) == 0 ? true:false;
+
+		else
+		if (write) return pthread_rwlock_trywrlock(&userlock) == 0 ? true:false;
+		else  	   return pthread_rwlock_tryrdlock(&userlock) == 0 ? true:false;
 	}
 
 	// Unlock this frame.
-	void unlockFrame() 
+	void unlockFrame(bool sys) 
 	{  
-		pthread_rwlock_unlock(&lock); 
+		if(sys) pthread_rwlock_unlock(&syslock); 
+		else 	pthread_rwlock_unlock(&userlock);
 	}
 
 	// The id of the page held in the frame.
@@ -72,7 +86,8 @@ public:
 private:
 
 	// Handle concurrent access
-	pthread_rwlock_t lock;
+	pthread_rwlock_t syslock;
+	pthread_rwlock_t userlock;
 
 	// Pointer to the page, which is of known size. 
 	FRIEND_TEST(BufferManagerTest, flushFrameToFile);

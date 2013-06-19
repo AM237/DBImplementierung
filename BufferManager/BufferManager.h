@@ -32,25 +32,25 @@ namespace BM_CONS
 // Structs, exceptions
 // ***************************************************************************
 
-class ReplaceFailAllFramesFixed: public std::exception
+struct ReplaceFailAllFramesFixed: public std::exception
 {
   virtual const char* what() const throw()
   { return "BufferManager could not replace frame - all frames are fixed."; }
-};
+} allFramesFixed;
 
 
-class ReplaceFailFrameUnclean: public std::exception
+struct ReplaceFailFrameUnclean: public std::exception
 {
   virtual const char* what() const throw()
   { return "Suggested frame for replacement is not clean."; }
-};
+} frameUnclean;
 
 
-class ReplaceFailNoFrameSuggested: public std::exception
+struct ReplaceFailNoFrameSuggested: public std::exception
 {
   virtual const char* what() const throw()
   { return "No frame was suggested for replacement"; }
-};
+} noFrameSuggested;
 
 
 
@@ -127,6 +127,7 @@ private:
 	// Handle concurrent access to the BM's data structures and procedures
 	 std::mutex bmlock;
 
+	 std::mutex lockSwitch;
 };
 
 #endif  // BUFFERMANAGER_H

@@ -142,7 +142,7 @@ std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
 
 
 //______________________________________________________________________________
-void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame )
+void BufferManager::readPageIntoFrame(uint64_t pageId, BufferFrame* frame)
 {
 	// Read page from file into main memory. 
 	// Page begins at pageId * pageSize bytes	
@@ -190,17 +190,20 @@ void BufferManager::flushFrameToFile(BufferFrame& frame)
 
 //______________________________________________________________________________
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
-{ 	
+{
+	// Label implements tail recursion to avoid stack overflow 	
+	top:
+
 	// Case: page with pageId is buffered -> return page directly
 	bmlock.lock();
 	vector<BufferFrame*>* frames = hasher->lookup(pageId);
 	for (size_t i = 0; i < frames->size(); i++)
 	{
 		BufferFrame* bf = frames->at(i);
-		if(!bf->tryLockFrame(true))
+		if(!bf->tryLockFrame(exclusive, true))
         {
            	bmlock.unlock();
-            return fixPage(pageId, exclusive);
+            goto top;
         }
 		if (bf->pageId == pageId)
         {   	
@@ -208,7 +211,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
             bmlock.unlock();
 			return *bf;
         }
-        bf->unlockFrame();
+        bf->unlockFrame(true);
 	}
 	bmlock.unlock();
 
@@ -222,20 +225,24 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	for (uint64_t i = 0; i < numFrames; i++)
 	{
 		BufferFrame* frame = hasher->nextFrame();
-		if(!frame->tryLockFrame(true))
+		if(!frame->tryLockFrame(true, true))
         {
-           	bmlock.unlock();
-            return fixPage(pageId, exclusive);
+			bmlock.unlock();
+            goto top;
         }
 		if (frame->getData() == nullptr)
 		{
         	spaceFound = true;
             readPageIntoFrame(pageId, frame);
-            replacer->pageFixedFirstTime(frame);            
+            
+            frame->unlockFrame(true);
+            frame->lockFrame(exclusive, true);
+
+            replacer->pageFixedFirstTime(frame);     
             bmlock.unlock();
 			return *frame;
 		}
-		frame->unlockFrame();
+		frame->unlockFrame(true);
 		if (!frame->pageFixed) allPagesFixed = false;
 	}
 
@@ -243,48 +250,39 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	// -> use replacement strategy to replace an unfixed page in buffer
 	// and update the frame lookup mechanism (hash table) accordingly.
 	// If no pages can be replaced, method is allowed to fail (via exception,
-	// block, etc.
-
+	// block, etc
     if(!spaceFound)
     {       	
     	// no pages can be replaced
-    	if (allPagesFixed)
-    	{
-    		ReplaceFailAllFramesFixed fail;
-       	 	throw fail;
-    	}
-   
+    	if (allPagesFixed) throw allFramesFixed;
+
        	BufferFrame* frame = replacer->replaceFrame();
-       	if(!frame->tryLockFrame(true))
+       	if(!frame->tryLockFrame(true, true))
         {
            	bmlock.unlock();
-            fixPage(pageId, exclusive);
+            goto top;
         }
 
-       	// should never be the case?
-       	if (frame == nullptr)
-       	{
-			ReplaceFailNoFrameSuggested fail;
-			throw fail;
-       	}
+       	// should never be the case
+       	if (frame == nullptr) throw noFrameSuggested;
        	
        	// should always be the case
        	if (frame->getData() == nullptr)
   		{ 
 			readPageIntoFrame(pageId, frame);
-  			replacer->pageFixedFirstTime(frame);
+  			            
+            frame->unlockFrame(true);
+            frame->lockFrame(exclusive, true);
+
+            replacer->pageFixedFirstTime(frame);
   			bmlock.unlock();
 			return *frame;
+		} 
 
-		} else {
-			ReplaceFailFrameUnclean fail;
-			throw fail;
-		}
+		else throw frameUnclean;
 	}
 
-
 	// Is never returned, because exactly one case above is true
-	//BufferFrame* bf = new BufferFrame();
 	return *(new BufferFrame());
 }
 
@@ -307,9 +305,8 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 		// no longer dirty	
 		frame.isDirty = false;
 	}
-	frame.unlockFrame();
+	frame.unlockFrame(true);
 	bmlock.unlock();
-	
 }
 
 //______________________________________________________________________________
