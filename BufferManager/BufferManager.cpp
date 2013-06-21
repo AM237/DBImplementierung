@@ -4,7 +4,6 @@
 
 
 #include "BufferManager.h"
-#include "ScopedLock.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 
@@ -254,7 +253,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
     if(!spaceFound)
     {       	
     	// no pages can be replaced
-    	if (allPagesFixed) throw allFramesFixed;
+    	if (allPagesFixed) { BM_EXC::ReplaceFailAllFramesFixed e; throw e; }
 
        	BufferFrame* frame = replacer->replaceFrame();
        	if(!frame->tryLockFrame(true, true))
@@ -264,7 +263,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
         }
 
        	// should never be the case
-       	if (frame == nullptr) throw noFrameSuggested;
+       	if (frame == nullptr) { BM_EXC::ReplaceFailNoFrameSuggested e; throw e;}
        	
        	// should always be the case
        	if (frame->getData() == nullptr)
@@ -279,7 +278,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 			return *frame;
 		} 
 
-		else throw frameUnclean;
+		else { BM_EXC::ReplaceFailFrameUnclean  e; throw e; }
 	}
 
 	// Is never returned, because exactly one case above is true

@@ -32,25 +32,28 @@ namespace BM_CONS
 // Structs, exceptions
 // ***************************************************************************
 
-struct ReplaceFailAllFramesFixed: public std::exception
+namespace BM_EXC
 {
-  virtual const char* what() const throw()
-  { return "BufferManager could not replace frame - all frames are fixed."; }
-} allFramesFixed;
+
+	struct ReplaceFailAllFramesFixed: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "BufferManager replace fail - all frames are fixed."; }
+	};
 
 
-struct ReplaceFailFrameUnclean: public std::exception
-{
-  virtual const char* what() const throw()
-  { return "Suggested frame for replacement is not clean."; }
-} frameUnclean;
+	struct ReplaceFailFrameUnclean: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "Suggested frame for replacement is not clean."; }
+	};
 
-
-struct ReplaceFailNoFrameSuggested: public std::exception
-{
-  virtual const char* what() const throw()
-  { return "No frame was suggested for replacement"; }
-} noFrameSuggested;
+	struct ReplaceFailNoFrameSuggested: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "No frame was suggested for replacement"; }
+	};
+}
 
 
 
