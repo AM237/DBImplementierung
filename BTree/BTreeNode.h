@@ -7,17 +7,8 @@
 #ifndef BTREENODE_H
 #define BTREENODE_H
 
+#include "../SegmentManager/TID.h"
 #include <gtest/gtest.h>
-
-// An object representing a tupel identifier. 
-// Marks the pageNo and the internal tid
-struct TID
-{
-public: 
-	TID(uint64_t pageno, uint64_t tid) : pageno(pageno), tid(tid) { }
-	uint64_t pageno;
-	uint64_t tid;
-};
 
 
 // Class representing a node in a B+ Tree. -------------------------------------

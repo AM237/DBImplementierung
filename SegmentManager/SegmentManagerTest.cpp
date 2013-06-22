@@ -71,11 +71,11 @@ TEST(SegmentManagerTest, initializeNoFile)
 	uint64_t fileBytes = ftell(db);
 	
 	// Check size of db
-	ASSERT_EQ(fileBytes, 3*constants::pageSize);
+	ASSERT_EQ(fileBytes, 3*BM_CONS::pageSize);
 	
 	// Read in the individual pages
 	vector<uint64_t> pages;
-	int intsPerPage = constants::pageSize/sizeof(uint64_t);
+	int intsPerPage = BM_CONS::pageSize/sizeof(uint64_t);
 	pages.resize(3*intsPerPage);
 
 	if (lseek(fileno(db), 0, SEEK_SET) < 0)
@@ -83,7 +83,7 @@ TEST(SegmentManagerTest, initializeNoFile)
 		cout << "Error seeking to start of file: " << errno << endl;
 		exit(1);
 	}
-	if (read(fileno(db), pages.data(), 3*constants::pageSize) < 0)
+	if (read(fileno(db), pages.data(), 3*BM_CONS::pageSize) < 0)
 		std::cout << "Error reading test db " << endl;
 		
 	fclose(db);
@@ -124,7 +124,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	// | 0  | 1   | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11   | 12   | 13| 14   |
 	// | SI | FSI | 4 | 2 | 3 | 2 | 3 | 3 | 2 | 4 | 4 | Free | Free | 2 | Free |
 
-	uint64_t size = constants::pageSize/sizeof(uint64_t);
+	uint64_t size = BM_CONS::pageSize/sizeof(uint64_t);
 	vector<uint64_t> pages;
 	pages.resize(15 * size, 0);
 	
@@ -165,7 +165,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	// Create file
 	FILE* testFile;
  	testFile = fopen ("database", "wb");
-	if (write(fileno(testFile), pages.data(), 15 * constants::pageSize) < 0)
+	if (write(fileno(testFile), pages.data(), 15 * BM_CONS::pageSize) < 0)
 		std::cout << "initializeWithFile: error writing to testFile" << endl;
 	fclose(testFile);
 	

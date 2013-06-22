@@ -17,7 +17,7 @@ FreeSpaceInventory::FreeSpaceInventory(SegmentInventory* si,
 {
 	this->si = si;
 	this->bm = bm;
-	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (2*sizeof(uint64_t));
+	maxEntries = (BM_CONS::pageSize-sizeof(uint64_t)) / (2*sizeof(uint64_t));
 	initializeFromFile();
 }
 

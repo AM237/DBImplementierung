@@ -21,7 +21,7 @@ SegmentInventory::SegmentInventory(BufferManager* bm, bool visible, uint64_t id,
 {	
 	this->bm = bm;
 	this->nextId = 1;	
-	maxEntries = (constants::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
+	maxEntries = (BM_CONS::pageSize-sizeof(uint64_t)) / (3*sizeof(uint64_t));
 	initializeFromFile();
 }
 

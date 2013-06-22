@@ -1,6 +1,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
-// Segment.h
+// SegmentManager.h
 //////////////////////////////////////////////////////////////////////////////
 
 
@@ -17,13 +17,18 @@
 
 
 // Provides basic functions operating on segments, such as create, drop, grow
-// or retrieve by id
+// or retrieve by id. See constructor for further details.
 class SegmentManager
 {
 
 public:
 
-	// Constructor, destructor: deletes SI, FSI, Buffer Manager
+	// Constructor: creates and initializes the FSI, SI, and BufferManager.
+	// The FSI and SI are special segments that live and are destroyed with
+	// the SM. Otherwise, the SM stores RegularSegments only, that is, it has
+	// no knowledge of their internal format, only their layout on disk.
+	// The Metadata layer is responsible for knowing which specialized segments
+	// have which id and to interpret the results returned by the SM accordingly 
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	SegmentManager(const std::string& filename);

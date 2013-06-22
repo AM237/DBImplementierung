@@ -1,17 +1,15 @@
 
 ///////////////////////////////////////////////////////////////////////////////
-// RegularSegment.cpp
+// SPSegment.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#include "RegularSegment.h"
-#include <algorithm>
+#include "SPSegment.h"
 
 using namespace std;
 
-
 // _____________________________________________________________________________
-RegularSegment::RegularSegment(bool visible, uint64_t id, Extent* base) 
-               : Segment(true, visible, id, base)
+SPSegment::SPSegment(bool visible, uint64_t id, Extent* base) 
+               : RegularSegment(visible, id, base)
 { }
 

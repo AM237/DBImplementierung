@@ -7,7 +7,7 @@ SUBDIRS = ../BufferManager/
 OBJECTS := $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard *.cpp))))
 SUBDIROBJECTS = $(foreach dir, $(SUBDIRS), $(addsuffix .o,$(basename $(filter-out %Main.cpp %Test.cpp,$(wildcard $(dir)/*.cpp)))))
 
-MAIN_LIBS = #-pthread
+MAIN_LIBS = -pthread
 TEST_LIBS = -lgtest -lpthread
 DEBUG = -ggdb
 RELEASE = segmentmanager

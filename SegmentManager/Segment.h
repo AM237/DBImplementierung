@@ -35,22 +35,23 @@ public:
 	// in the construction process.
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	Segment(bool permanent, bool visible, uint64_t id, Extent* ex = NULL)
+	Segment(bool permanent, bool visible, uint64_t id, Extent* ex = nullptr)
 	{
 		this->permanent = permanent;
 		this->visible = visible; 
 		this->id = id;
 		this->nextPageCounter = 0;
 		
-		if (ex != NULL)
+		if (ex != nullptr)
 		{
 			Extent e(ex->start, ex->end);
 			this->extents.push_back(e);
-			//delete ex;
+			delete ex;
 		}
 	}
 	
 	virtual ~Segment() { }
+
 	
 	// Returns whether this segment is public (true) or private (false)
 	bool getVisibility() { return visible; }
@@ -67,8 +68,7 @@ public:
 		for (size_t i = 0; i < extents.size(); i++)
 		{
 			Extent e = extents[i];
-			for(uint64_t j = e.start; j < e.end; j++)
-				counter++;
+			for(uint64_t j = e.start; j < e.end; j++) counter++;
 		}
 		return counter;
 	}
@@ -88,14 +88,11 @@ public:
 		for (size_t i = 0; i < extents.size(); i++)
 		{
 			Extent e = extents[i];
-			for(uint64_t j = e.start; j < e.end; j++)
-				pages.push_back(j);
+			for(uint64_t j = e.start; j < e.end; j++) pages.push_back(j);
 		}
 	
 		sort(pages.begin(), pages.end());
-		if (nextPageCounter >= pages.size())
-			return pages[pages.size()-1];
-
+		if (nextPageCounter >= pages.size()) return pages[pages.size()-1];
 		return pages[nextPageCounter++];
 	}
 

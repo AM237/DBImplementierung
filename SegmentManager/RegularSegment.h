@@ -10,10 +10,11 @@
 #include "Segment.h"
 
 
-// A regular segment (public, permanent) in the database
+// A regular segment (public, permanent) in the database. Segments of this 
+// type do not define any layout of the managed pages, i.e. they provide
+// "formatless" memory (in page sized byte arrays).
 class RegularSegment : public Segment
 {
-
 public:
 
 	// Constructor/destructor

@@ -236,7 +236,7 @@ template<class T, class CMP> void BTree<T, CMP>::writeToFile()
 	for (auto it = 0; it < nodes.size(); it++)
 	{
 		BTreeNode<T>* node = nodes[it];
-		assert(sizeof(node) <= constants::pageSize);
+		assert(sizeof(node) <= BM_CONS::pageSize);
 		uint64_t pageNo = bTreeSeg->nextPage();
 		BufferFrame& bf = bm.fixPage(pageNo, true);
 		memcpy(bf.data(), &node, sizeof(node));
