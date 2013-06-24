@@ -9,8 +9,6 @@
 
 #include <gtest/gtest.h>
 #include <stdint.h>
-#include <vector>
-#include <algorithm>
 
 
 // An object representing an extent in a segment. Bound given as [start, end)
@@ -35,24 +33,10 @@ public:
 	// in the construction process.
 	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	Segment(bool permanent, bool visible, uint64_t id, Extent* ex = nullptr)
-	{
-		this->permanent = permanent;
-		this->visible = visible; 
-		this->id = id;
-		this->nextPageCounter = 0;
-		
-		if (ex != nullptr)
-		{
-			Extent e(ex->start, ex->end);
-			this->extents.push_back(e);
-			delete ex;
-		}
-	}
+	Segment(bool permanent, bool visible, uint64_t id, Extent* ex = nullptr);
 	
 	virtual ~Segment() { }
 
-	
 	// Returns whether this segment is public (true) or private (false)
 	bool getVisibility() { return visible; }
 	
@@ -62,16 +46,10 @@ public:
 	// Returns the size of this segment in frames
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);	
-	uint64_t getSize()
-	{
-		uint64_t counter = 0;
-		for (size_t i = 0; i < extents.size(); i++)
-		{
-			Extent e = extents[i];
-			for(uint64_t j = e.start; j < e.end; j++) counter++;
-		}
-		return counter;
-	}
+	uint64_t getSize();
+
+	// Returns the page id of the first page in the segment.
+	uint64_t firstPage();
 
 	// Returns the page id of the next page in the segment. Calling this method
 	// for the first time gives the first page of the segment, calling it twice
@@ -79,22 +57,7 @@ public:
 	// id of the last available page is returned.
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	uint64_t nextPage()
-	{
-		std::vector<uint64_t> pages;
-	
-		// Get all extents, get pages from each extent and return next page
-		// in order (note: there should be no duplicates due to def. of extents)
-		for (size_t i = 0; i < extents.size(); i++)
-		{
-			Extent e = extents[i];
-			for(uint64_t j = e.start; j < e.end; j++) pages.push_back(j);
-		}
-	
-		sort(pages.begin(), pages.end());
-		if (nextPageCounter >= pages.size()) return pages[pages.size()-1];
-		return pages[nextPageCounter++];
-	}
+	uint64_t nextPage();
 
 	
 protected:
@@ -102,14 +65,16 @@ protected:
 	// Writes (copies) data from one array to another
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	void writeToArray(uint64_t* from, void* to, int elems, int offset)
-	{
-		for (int i = offset; i < offset+elems; i++)
-			reinterpret_cast<uint64_t*>(to)[i] = from[i];
-	}
+	void writeToArray(uint64_t* from, void* to, int elems, int offset);
 
 	// The extents in this segment
 	std::vector<Extent> extents;
+
+	// Id of this segment
+	uint64_t id;
+	
+	// the number of times nextPage has been called on this segment
+	uint64_t nextPageCounter;
 
 	// Defines whether this segment is public or private
 	bool visible;
@@ -117,12 +82,6 @@ protected:
 	// Defines whether this segment is permanent or not. Non permanent 
 	// segments are dropped at the end of the SegmentManager life cycle.
 	bool permanent;
-	
-	// Id of this segment
-	uint64_t id;
-	
-	// the number of times nextPage has been called on this segment
-	uint64_t nextPageCounter;
 };
 
 #endif  // SEGMENT_H

@@ -1,17 +1,15 @@
 
 ///////////////////////////////////////////////////////////////////////////////
-// RegularSegment.cpp
+// SlottedPage.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
-
-#include "RegularSegment.h"
-#include <algorithm>
+#include "SlottedPage.h"
 
 using namespace std;
 
-
 // _____________________________________________________________________________
-RegularSegment::RegularSegment(bool visible, uint64_t id, Extent* base) 
-               : Segment(true, visible, id, base)
-{ }
+void SlottedPage::compactify() 
+{ 
+	return;
+}
 

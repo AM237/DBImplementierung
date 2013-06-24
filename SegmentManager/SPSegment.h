@@ -7,18 +7,20 @@
 #ifndef SPSEGMENT_H
 #define SPSEGMENT_H
 
+#include "../BufferManager/BufferManager.h"
 #include "RegularSegment.h"
-#include "SlottedPage.h"
+#include "SegmentFSI.h"
+#include "Record.h"
+#include "TID.h"
 
 // A segment based on slotted pages.
 class SPSegment : public RegularSegment
 {
 public:
 
-	// Constructor. Initializes the pages in this segment's extents with a
-	// slotted pages format.
-	SPSegment(bool visible, uint64_t id, Extent* base = NULL);
-	~SPSegment() { }
+	// Constructor. Initializes the segment's FSI.
+	SPSegment(BufferManager* bm, bool visible, uint64_t id, Extent* base =NULL);
+	~SPSegment();
 
 	// Searches through the segment's pages looking for a page with enough 
 	// space to store r. Returns nullptr iff there is no space, i.e. segment 
@@ -37,8 +39,7 @@ public:
 	//Updates the record pointed to by tid with the content of record r.
 	bool update(TID tid, const Record& r);
 	      	  
-	
-	
+		
 private:
 
 	// Deserializes file contents and fills an SPSegment object with the
@@ -50,7 +51,13 @@ private:
 	// from the information encoded in these extents.
 	void initializeFromFile();
 
-	std::vector<SlottedPage> spages;
+	// The free space inventory for this segment.
+	SegmentFSI* fsi;
+
+	// Reference to the Buffer Manager. This class does not take responsibility
+	// for the destruction of this pointer.
+	BufferManager* bm;
 };
+
 
 #endif  // SPSEGMENT_H

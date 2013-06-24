@@ -9,7 +9,6 @@
 
 #include "Segment.h"
 
-
 // A regular segment (public, permanent) in the database. Segments of this 
 // type do not define any layout of the managed pages, i.e. they provide
 // "formatless" memory (in page sized byte arrays).
@@ -17,14 +16,15 @@ class RegularSegment : public Segment
 {
 public:
 
-	// Constructor/destructor
+	// Constructor/destructor. Takes BM in case specializations of this class
+	// require internal memory management.
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	RegularSegment(bool visible, uint64_t id, Extent* base = NULL);
+	RegularSegment(bool visible, uint64_t id, Extent* base = NULL) 
+				   : Segment(true, visible, id, base) { }
 	      	  
 	~RegularSegment() { }	
 	
 private:
-
 
 };
 

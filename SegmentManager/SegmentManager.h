@@ -40,6 +40,7 @@ public:
 	
 	// Drops the segment with the given id. The results in a change in the FSI,
 	// where the pages of the dropped segment are now recorded as being free.
+	// The SI is also updated accordingly.
 	//
 	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	void dropSegment(uint64_t segId);

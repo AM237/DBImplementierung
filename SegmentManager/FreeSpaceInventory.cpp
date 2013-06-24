@@ -6,6 +6,7 @@
 
 #include "FreeSpaceInventory.h"
 #include <queue>
+#include <math.h>
 
 using namespace std;
 
