@@ -24,7 +24,7 @@ SegmentFSI::SegmentFSI(uint64_t numPages, uint64_t pageStart)
 	extents.push_back(e);
 
 	// Initialize size
-	this->size = sizeof(*this);
+	this->size = sizeof(*this);		
 }
 
 

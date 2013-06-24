@@ -19,6 +19,13 @@ class SPSegment : public RegularSegment
 public:
 
 	// Constructor. Initializes the segment's FSI.
+	//
+	// The FSI can be initialized in two different ways. If the respective
+	// segment is created for the first time, then the FSI must be initialized
+	// to signal that all of the segment's pages are empty. Otherwise, the
+	// segment has been recovered from file (see SegmentInventory::
+	// initializeFromFile). In this case the FSI must be recovered from file,
+	// starting from the first page of the segment.
 	SPSegment(BufferManager* bm, bool visible, uint64_t id, Extent* base =NULL);
 	~SPSegment();
 
@@ -38,7 +45,9 @@ public:
 
 	//Updates the record pointed to by tid with the content of record r.
 	bool update(TID tid, const Record& r);
-	      	  
+
+	// Override
+	void notifySegGrowth(Extent e);
 		
 private:
 

@@ -74,9 +74,12 @@ uint64_t SegmentManager::createSegment(bool visible)
 		return createSegment(visible);
 	}
 	
+	// e has already been unregistered from the FSI
 	else
 	{
-		// e has already been unregistered from the FSI
+		// The SM is aware of the existence of only three types of segments:
+		// the SI, FSI, and RegularSegments. Use dynamic_cast to retrieve
+		// desired specializations of RegularSegments.
 		uint64_t newId = segInv->setNextId(); 
 		Segment* newSeg = new RegularSegment(visible, newId, &e);
 		bool found = segInv->registerSegment(newSeg);
@@ -103,7 +106,7 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 		
 	}
 	
-	Segment* toGrow = retrieveSegmentById(segId);
+	auto toGrow = dynamic_cast<RegularSegment*>(retrieveSegmentById(segId));
 	if (toGrow == nullptr)
 	{
 		cout << "Error growing segment: no segment with id " << segId 
@@ -138,8 +141,9 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 		// e has already been unregistered from the FSI
 		toGrow->extents.push_back(e);
 		
-		// Notify the SI that this segment has grown
+		// Notify the SI as well as the respective segment that it has grown
 		segInv->notifySegGrowth(toGrow->id, 1);
+		toGrow->notifySegGrowth(e);
 		return e.start;
 	}
 	

@@ -215,7 +215,7 @@ void SegmentInventory::initializeFromFile()
 				 newSeg = new FreeSpaceInventory(this, bm, false, segId, 
 				                                 &(it->second));
 
-			else newSeg = new RegularSegment(true, segId, &(it->second));
+			else newSeg = new RegularSegment(true, segId, &(it->second), true);
 			
 			if (newSeg != NULL) 
 				segments.insert(pair<uint64_t, Segment*>(segId, newSeg));

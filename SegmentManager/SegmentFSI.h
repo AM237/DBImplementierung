@@ -49,11 +49,12 @@ struct FreeSpaceEntry {
 // 10 -> 4096 - headerSize
 class SegmentFSI
 {
+	friend class SPSegment;
+	
 public:
 
 	// Constructor. Takes the size of the segment in pages, and the page on
-	// which the segment containing this FSI starts. Initializes the
-	// FSI to contain an entry per page.
+	// which the segment containing this FSI starts. 
 	SegmentFSI(uint64_t pages, uint64_t pageStart);
 	~SegmentFSI() { }
 

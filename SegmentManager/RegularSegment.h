@@ -16,15 +16,28 @@ class RegularSegment : public Segment
 {
 public:
 
-	// Constructor/destructor. Takes BM in case specializations of this class
-	// require internal memory management.
+	// Constructor/destructor.
 	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	RegularSegment(bool visible, uint64_t id, Extent* base = NULL) 
-				   : Segment(true, visible, id, base) { }
+	RegularSegment(bool visible, uint64_t id, Extent* base = NULL, 
+				   bool recovered = false) : Segment(true, visible, id, base)
+	{ 
+		this->recovered = recovered;
+	}
 	      	  
-	~RegularSegment() { }	
+	~RegularSegment() { }
+
+	// Notifies this RegularSegment that the SM has added an extent.
+	// This is necessary, since specializations of this class might
+	// need to make memory management arrangements based on the free
+	// space in the segment.
+	virtual void notifySegGrowth(Extent e) {  }
 	
-private:
+protected:
+
+	// true iff this segment was recovered directly from file (see 
+	// SegmentInventory::initializeFromFile) instead of being created for the
+	// first time via the SM interface.
+	bool recovered;
 
 };
 
