@@ -51,15 +51,6 @@ public:
 		
 private:
 
-	// Deserializes file contents and fills an SPSegment object with the
-	// respective data. Typical use case: An SPSegment is returned by the SM
-	// via the retrieveSegmentById interface (knowledge that the returned 
-	// segment is actually an SPSegment is given by the metadata layer). 
-	// This already specifies which extents belong to this segment.
-	// Then the initialize method is called to update the objects internal data
-	// from the information encoded in these extents.
-	void initializeFromFile();
-
 	// The free space inventory for this segment.
 	SegmentFSI* fsi;
 

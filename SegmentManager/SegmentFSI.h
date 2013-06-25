@@ -7,6 +7,7 @@
 #ifndef SEGMENTFSI_H
 #define SEGMENTFSI_H
 
+#include "../BufferManager/BufferManager.h"
 #include "Segment.h"
 #include <gtest/gtest.h>
 #include <stdint.h>
@@ -28,25 +29,28 @@ struct FreeSpaceEntry {
 // the initial FSI fits on the first page of the segment.
 //
 // The FSI encodes the following information:
-// | FSI extents | size in bytes | page1 fullness | ... | pageN fullness |
+// | FSI size | Extents size | Inventory Size | Extents | Inventory |
 //
 // It is assumed that the FSI extent entries and 'size in bytes' all fit on the 
 // first page of the segment. The 'size in bytes' field is an 8 byte integer.
-// Any given 'pageN fullness' entry uses 4 bits to encode its degree of fullness
+// Any given inventory entry uses 4 bit pairs to encode a degree of fullness
 // according to the following linear / logarithmic scale:
 //
 // Value -> At least N remaining bytes:
-// 0 -> 8
-// 1 -> 16
-// 2 -> 32
-// 3 -> 64
-// 4 -> 128
-// 5 -> 256
-// 6 -> 512
-// 7 -> 1024
-// 8 -> 2048
-// 9 -> 3072
-// 10 -> 4096 - headerSize
+// 1 -> 8
+// 2 -> 16
+// 3 -> 32
+// 4 -> 64
+// 5 -> 128
+// 6 -> 256
+// 7 -> 512
+// 8 -> 1024
+// 9 -> 2048
+// 10 -> 3072
+// 11 -> 4096 - headerSize
+//
+// A value of 0 for a page entry in a FreeSpaceEntry marks the given page
+// as being used by the SegmentFSI
 class SegmentFSI
 {
 	friend class SPSegment;
@@ -55,20 +59,32 @@ public:
 
 	// Constructor. Takes the size of the segment in pages, and the page on
 	// which the segment containing this FSI starts. 
-	SegmentFSI(uint64_t pages, uint64_t pageStart);
+	SegmentFSI(BufferManager* bm, uint64_t pages, uint64_t pageStart);
 	~SegmentFSI() { }
+
+	// Serializes this SegmentFSI object. Returns byte array and its length.
+	// This object does not take responsiblity for freeing the allocated
+	// memory
+	std::pair<unsigned char*, uint64_t> serialize();
+
+	// De-serializes this SegmentFSI object, fills data structures
+	void deserialize(unsigned char* bytes);
+
+	// Returns the runtime size of this SegmentFSI in bytes
+	uint64_t getRuntimeSize();
 
 private:
 
-	// The size of this SegmentFSI object in bytes. This is necessary to know
-	// how much byte data needs to be read from this SegmentFSI's extents.
-	uint64_t size;
+	// BufferManager handler
+	BufferManager* bm;
 
-	// The set of pages over which this SegmentFSI is spread.
+	// The set of pages over which this SegmentFSI is spread. Assumed to fit
+	// on the first page at all times.
 	std::vector<Extent> extents;
 
-	// Free space information for pairs of pages.
-	std::vector<FreeSpaceEntry> inventory;
+	// Free space information for pairs of pages. Note: may contain a surplus
+	// page entry if the size of the segment is uneven.
+	std::vector<FreeSpaceEntry> inv;
 };
 
 #endif  // SEGMENTFSI_H

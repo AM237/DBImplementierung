@@ -16,7 +16,7 @@ struct SlottedPageHeader
 	// recovery component, number of used slots, id of first free slot to
 	// speed up locating free slots, lower end of data, and the space that would
 	// be available in this slotted page after compactification (in bytes)
-	uint32_t lsn, slotCount, firstFreeSlot, dataStart, freeSpace;
+	uint64_t lsn, slotCount, firstFreeSlot, dataStart, freeSpace;
 };
 
 
@@ -24,7 +24,7 @@ struct SlottedPageHeader
 struct SlottedPageSlot
 {
 	// offset and length of corresponding data item
-	uint32_t offset, length;
+	uint64_t offset, length;
 };
 
 
@@ -47,11 +47,10 @@ private:
 	// The header of the slotted page
 	SlottedPageHeader header;
 
-	// The slots containing start and offset ids
-	std::vector<SlottedPageSlot> slots;
-
-	// The records maintained by this slotted page.
-	void* data;
+	// The data held by this slotted page. Encodes both the slots as well as
+	// the actual data. Access to slots via slotCount, and the knowledge that
+	// the slots immediately follow the header on file.
+	unsigned char* data;
 };
 
 #endif  // SLOTTEDPAGE_H
