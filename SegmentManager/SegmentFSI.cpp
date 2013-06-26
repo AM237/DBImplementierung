@@ -18,8 +18,8 @@ SegmentFSI::SegmentFSI(BufferManager* bm, uint64_t numPages, uint64_t pageStart)
 	for (int i = 0; i < ceil(numPages/2); i++)
 	{
 		FreeSpaceEntry e;
-		if (i == 0) e = {0 , 11};
-		else 	    e = {11, 11};
+		if (i == 0) e = {0 , 12};
+		else 	    e = {12, 12};
 		inv.push_back(e);
 	}
 
@@ -33,7 +33,7 @@ pair<unsigned char*, uint64_t> SegmentFSI::serialize()
 { 
 	// FSI format:
 	// | FSI size | Extents size | Inventory Size | Extents | Inventory |
-	uint64_t fsiSize = getRuntimeSize() + 3*sizeof(uint64_t);
+	uint64_t fsiSize = getRuntimeSize();
 	uint64_t extentsSize = extents.size();
 	uint64_t inventorySize = inv.size();
 
@@ -58,6 +58,10 @@ pair<unsigned char*, uint64_t> SegmentFSI::serialize()
 // _____________________________________________________________________________
 void SegmentFSI::deserialize(unsigned char* bytes)
 { 
+	// Reset data structures
+	extents.clear();
+	inv.clear();
+
 	// Get the extents / pages on which the FSI is found. Assumed to always
 	// be found exclusively on the first page of the segment.
 	auto header = reinterpret_cast<uint64_t*>(bytes);
@@ -102,7 +106,7 @@ void SegmentFSI::deserialize(unsigned char* bytes)
 // _____________________________________________________________________________
 uint64_t SegmentFSI::getRuntimeSize()
 { 
-	return extents.size()*sizeof(Extent) + 
+	return 3*sizeof(uint64_t)+ extents.size()*sizeof(Extent) + 
 	       inv.size()*sizeof(FreeSpaceEntry);
 }
 

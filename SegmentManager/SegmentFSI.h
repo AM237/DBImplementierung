@@ -12,6 +12,14 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
+namespace SM_EXC
+{
+	struct FsiOverflowException: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "No new page can be assigned to this segment's FSI"; }
+	};
+}
 
 // An entry in the SegmentFSI, marking 16 discrete fullness values for a pair
 // of pages.
@@ -31,8 +39,8 @@ struct FreeSpaceEntry {
 // The FSI encodes the following information:
 // | FSI size | Extents size | Inventory Size | Extents | Inventory |
 //
-// It is assumed that the FSI extent entries and 'size in bytes' all fit on the 
-// first page of the segment. The 'size in bytes' field is an 8 byte integer.
+// It is assumed that the FSI extent entries and all size markers fit on the 
+// first page of the segment. All size markers are 8 byte integers.
 // Any given inventory entry uses 4 bit pairs to encode a degree of fullness
 // according to the following linear / logarithmic scale:
 //
@@ -48,6 +56,7 @@ struct FreeSpaceEntry {
 // 9 -> 2048
 // 10 -> 3072
 // 11 -> 4096 - headerSize
+// 12 -> 4096 (uninitialized)
 //
 // A value of 0 for a page entry in a FreeSpaceEntry marks the given page
 // as being used by the SegmentFSI
@@ -67,10 +76,14 @@ public:
 	// memory
 	std::pair<unsigned char*, uint64_t> serialize();
 
-	// De-serializes this SegmentFSI object, fills data structures
+	// De-serializes this SegmentFSI object, re-writes data structures.
+	// Assumes bytes contains the FSI header, that is, 
+	// | FSI size | Extents size | Inventory Size | Extents |
+	// After extracting the FSI's extents, looks up all pages on which FSI
+	// is found and then deserializes the FSI completely.
 	void deserialize(unsigned char* bytes);
 
-	// Returns the runtime size of this SegmentFSI in bytes
+	// Returns the runtime size of this SegmentFSI in bytes.
 	uint64_t getRuntimeSize();
 
 private:

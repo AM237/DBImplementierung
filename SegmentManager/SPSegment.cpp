@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "SPSegment.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -18,31 +19,11 @@ SPSegment::SPSegment(BufferManager* bm, bool visible, uint64_t id, Extent* base)
 	{
 		// Read FSI size and extents. Assumption: size field and extents
 		// all fit / can be found on the first page of the segment.
-		vector<Extent> fsiExtents;
 		BufferFrame& bf = bm->fixPage(this->firstPage(), false);
-		auto header = reinterpret_cast<SegmentFSI*>(bf.getData());
-		//uint64_t fsiSize = header->size;
-		uint64_t fsiSize = sizeof(*fsi);
-		for ( Extent& e : header->extents) fsiExtents.push_back(e);
+		auto header = reinterpret_cast<unsigned char*>(bf.getData());
+		fsi = new SegmentFSI(bm, this->getSize(), this->firstPage());
+		fsi->deserialize(header);
 		bm->unfixPage(bf, false);
-
-		// Read FSI from extents and stitch FSI object
-		int pages = 0;
-		for ( Extent& e : fsiExtents) pages += (e.end - e.start);
-		unsigned char* fsibytes = new unsigned char[pages*BM_CONS::pageSize];
-		unsigned char* it = fsibytes;
-		for ( Extent& e : fsiExtents)
-			for ( uint64_t i = e.start; i < e.end; i++)
-			{
-				BufferFrame& bf = bm->fixPage(i, false);
-				memcpy(it, bf.getData(), BM_CONS::pageSize);
-				bm->unfixPage(bf, false);
-				it = it + BM_CONS::pageSize;
-			}
-
-		// take only first #fsiSize bytes
-		vector<unsigned char> fsiVec(fsibytes, fsibytes+fsiSize);
-		this->fsi = reinterpret_cast<SegmentFSI*>(fsiVec.data());
 	}
 
 	// If segment is being created for the first time, create a new FSI
@@ -53,7 +34,6 @@ SPSegment::SPSegment(BufferManager* bm, bool visible, uint64_t id, Extent* base)
 		fsi = new SegmentFSI(bm, this->getSize(), this->firstPage());
 		auto serialized = fsi->serialize();
 		BufferFrame& bf = bm->fixPage(this->firstPage(), true);
-		//memcpy(bf.getData(), fsi, sizeof(*fsi));
 		memcpy(bf.getData(), serialized.first, serialized.second);
 		bm->unfixPage(bf, true);
 		delete[] serialized.first;
@@ -77,13 +57,13 @@ void SPSegment::notifySegGrowth(Extent e)
 	// (see constructor)
 	if (this->getSize() % 2 != 0)
 	{
-		fsi->inv.back().page2 = 11;
+		fsi->inv.back().page2 = 12;
 		e.start = e.start + 1;
 	}
 
 	for (uint64_t i = e.start; i < e.end; i=i+2)
 	{
-		FreeSpaceEntry e = {11, 11};
+		FreeSpaceEntry e = {12, 12};
 		fsi->inv.push_back(e);
 	}
 
@@ -91,8 +71,85 @@ void SPSegment::notifySegGrowth(Extent e)
 	//
 	// Calculate available space given in extents. If this is not enough,
 	// look for an empty page, mark it as being used by the FSI, and add
-	// it to the FSI's extents. Then, materialize FSI to its extents.
-	//uint64_t pages = 0;
-	//for (Extent& e : fsi->extents) pages += (e.end - e.start);
+	// it to the FSI's extents. Then, materialize FSI across its extents.
+	vector<uint64_t> pages;
+	for (Extent& e : fsi->extents) 
+		for (unsigned int i = e.start; i < e.end; i++) pages.push_back(i);
+	sort(pages.begin(), pages.end());
+	uint64_t availableSpace = pages.size() * BM_CONS::pageSize;
+	uint64_t requiredSpace = fsi->getRuntimeSize();
+
+	
+	// Must look through the FSI for an empty page to add to the FSI's extents
+	while (requiredSpace > availableSpace)
+	{
+		uint64_t segmentSize = this->getSize();
+		uint64_t newFSIPageIndex = 0;
+		for (size_t i = 0; i < fsi->inv.size(); i++)
+		{
+			// First page of entry, must not be the first page of the segment.
+			if (i != 0 && fsi->inv[i].page1 == 12)
+			{
+				newFSIPageIndex = 2*i;
+				fsi->inv[i].page1 = 0;
+				break;
+			}
+
+			// Second page of entry, if last entry in inventory, only valid
+			// if the segment has an even number of pages. Otherwise
+			// the last entry of the inventory has a surplus page marker.
+			else if (!(i == fsi->inv.size()-1 && segmentSize % 2 != 0) &&
+				     fsi->inv[i].page2 == 12)
+			{
+				newFSIPageIndex = 2*i + 1;
+				fsi->inv[i].page2 = 0;
+				break;
+			}
+		}
+
+		// Add empty page found to FSI's extents.
+		if (newFSIPageIndex == 0) { SM_EXC::FsiOverflowException e; throw e; }
+		bool pageAbsorbed = false;
+
+		// Check if page can be integrated into an existing extent, otherwise
+		// create new extent
+		for (Extent& e : fsi->extents)
+		{
+			if (e.start == newFSIPageIndex+1) e.start = newFSIPageIndex;
+			else if (e.end == newFSIPageIndex) e.end = newFSIPageIndex+1;
+			pageAbsorbed = true;
+			break;
+		}
+		if (!pageAbsorbed)
+		{
+			Extent e = { newFSIPageIndex, newFSIPageIndex+1};
+			fsi->extents.push_back(e);
+		}
+
+		// Update loop condition
+		pages.clear();
+		for (Extent& e : fsi->extents) 
+			for (unsigned int i = e.start; i < e.end; i++) pages.push_back(i);
+		sort(pages.begin(), pages.end());
+		availableSpace = pages.size() * BM_CONS::pageSize;
+		requiredSpace = fsi->getRuntimeSize();
+	}
+
+	// Extents now have enough space to hold the serialized FSI
+	auto serialized = fsi->serialize();
+	auto it = serialized.first;
+	uint64_t remainingBytes = serialized.second;
+	for (size_t i = 0; i < pages.size(); i++)
+	{
+		uint64_t bytesToWrite = min(remainingBytes, (uint64_t)BM_CONS::pageSize);
+		BufferFrame& bf = bm->fixPage(pages[i], true);
+		memcpy(bf.getData(), it, bytesToWrite);
+		bm->unfixPage(bf, true);
+
+		it += bytesToWrite; 
+		remainingBytes -= bytesToWrite;
+		if (remainingBytes == 0) break;
+	}
+	delete[] serialized.first;
 }
 
