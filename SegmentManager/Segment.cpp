@@ -16,7 +16,6 @@ Segment::Segment(bool permanent, bool visible, uint64_t id, Extent* ex)
 	this->permanent = permanent;
 	this->visible = visible; 
 	this->id = id;
-	this->nextPageCounter = 0;
 	
 	if (ex != nullptr)
 	{
@@ -40,7 +39,7 @@ uint64_t Segment::getSize()
 
 
 // _____________________________________________________________________________
-uint64_t Segment::nextPage()
+uint64_t Segment::nextPage(uint64_t& nextPageCounter)
 {
 	std::vector<uint64_t> pages;
 
@@ -53,7 +52,7 @@ uint64_t Segment::nextPage()
 	}
 
 	sort(pages.begin(), pages.end());
-	if (nextPageCounter >= pages.size()) return pages[pages.size()-1];
+	if (nextPageCounter >= pages.size()) return pages.back();
 	return pages[nextPageCounter++];
 }
 

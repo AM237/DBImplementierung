@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include "../BufferManager/BMConst.h"
 
 // A slotted page header -------------------------------------------------------
 struct SlottedPageHeader
@@ -16,7 +17,7 @@ struct SlottedPageHeader
 	// recovery component, number of used slots, id of first free slot to
 	// speed up locating free slots, lower end of data, and the space that would
 	// be available in this slotted page after compactification (in bytes)
-	uint64_t lsn, slotCount, firstFreeSlot, dataStart, freeSpace;
+	uint32_t lsn, slotCount, firstFreeSlot, dataStart, freeSpace;
 };
 
 
@@ -24,7 +25,7 @@ struct SlottedPageHeader
 struct SlottedPageSlot
 {
 	// offset and length of corresponding data item
-	uint64_t offset, length;
+	uint32_t offset, length;
 };
 
 
@@ -36,6 +37,10 @@ public:
 	// Constructor/destructor
 	SlottedPage();
 	~SlottedPage() { }
+
+	// Getter methods
+	SlottedPageHeader& getHeader() { return header; }
+	unsigned char* getData() { return data; }
 
 	// Presses data blocks together to make space for more incoming data.
 	// Updates header and the corresponding slots.
@@ -50,7 +55,7 @@ private:
 	// The data held by this slotted page. Encodes both the slots as well as
 	// the actual data. Access to slots via slotCount, and the knowledge that
 	// the slots immediately follow the header on file.
-	unsigned char* data;
+	unsigned char data[BM_CONS::pageSize - sizeof(SlottedPageHeader)];
 };
 
 #endif  // SLOTTEDPAGE_H

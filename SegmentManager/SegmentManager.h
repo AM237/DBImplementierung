@@ -10,7 +10,7 @@
 #include "../BufferManager/BufferManager.h"
 #include "SegmentInventory.h"
 #include "FreeSpaceInventory.h"
-#include "SegManConst.h"
+#include "SMConst.h"
 
 #include <stdio.h>
 #include <string>
@@ -74,7 +74,7 @@ private:
 	FreeSpaceInventory* spaceInv;
 	
 	// Segment manager parameters
-	SegManConst params;
+	SMConst params;
 };
 
 

@@ -10,7 +10,6 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-
 // An object representing an extent in a segment. Bound given as [start, end)
 struct Extent
 {
@@ -51,13 +50,20 @@ public:
 	// Returns the page id of the first page in the segment.
 	uint64_t firstPage();
 
-	// Returns the page id of the next page in the segment. Calling this method
-	// for the first time gives the first page of the segment, calling it twice
-	// gives the second page, and so on. If no more pages are available, the
-	// id of the last available page is returned.
+	// Returns the page id of the next page in the segment as of the given 
+	// counter. Calling this method for the first time gives the first page 
+	// of the segment, calling it twice gives the second page, and so on. 
+	// If no more pages are available, the id of the last available page 
+	// is returned. Example:
+	//
+	// int nextPage = 5;
+	// nextPage(nextPage) -> gives 5th page of segment
+	// nextPage(nextPage) -> gives 6th page of segment
+	// nextPage(nextPage) -> gives 7th page of segment 
+	// ...
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
-	uint64_t nextPage();
+	uint64_t nextPage(uint64_t& nextPageCounter);
 
 	
 protected:
@@ -72,9 +78,6 @@ protected:
 
 	// Id of this segment
 	uint64_t id;
-	
-	// the number of times nextPage has been called on this segment
-	uint64_t nextPageCounter;
 
 	// Defines whether this segment is public or private
 	bool visible;

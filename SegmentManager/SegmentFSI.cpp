@@ -5,6 +5,8 @@
 
 
 #include "SegmentFSI.h"
+#include "SlottedPage.h"
+#include <assert.h> 
 #include <math.h> 
 
 using namespace std;
@@ -22,6 +24,11 @@ SegmentFSI::SegmentFSI(BufferManager* bm, uint64_t numPages, uint64_t pageStart)
 		else 	    e = {12, 12};
 		inv.push_back(e);
 	}
+
+	// Initialize free space mapping
+	int x = sizeof(SlottedPageHeader);
+	assert(4096 - x > 3072);
+	freeBytes = {0,8,16,32,64,128,256,512,1024,2048,3072,4096-x,4096};
 
 	// Initialize extents
 	Extent e = {pageStart, pageStart+1};

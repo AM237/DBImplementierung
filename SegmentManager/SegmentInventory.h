@@ -9,7 +9,7 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "RegularSegment.h"
-#include "SegManConst.h"
+#include "SMConst.h"
 
 #include <gtest/gtest.h>
 #include <unordered_map>
@@ -133,7 +133,7 @@ private:
 	BufferManager* bm;
 	
 	// Segment manager parameters
-	SegManConst params;
+	SMConst params;
 	
 	// Data structure mapping a segment id to a segment
 	std::map<uint64_t, Segment*> segments;

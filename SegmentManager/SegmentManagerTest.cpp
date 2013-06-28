@@ -24,7 +24,7 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(si->id, 0);
 	ASSERT_EQ(si->nextId, 2);
 	ASSERT_EQ(si->numEntries, 2);
-	ASSERT_EQ(si->nextPageCounter, 0);
+	//ASSERT_EQ(si->nextPageCounter, 0);
 	ASSERT_FALSE(si->visible);
 	ASSERT_TRUE(si->permanent);
 	
@@ -44,7 +44,7 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(fsi->bm, sm->bm);
 	ASSERT_EQ(fsi->id, 1);
 	ASSERT_EQ(fsi->numEntries, 1);
-	ASSERT_EQ(fsi->nextPageCounter, 0);
+	//ASSERT_EQ(fsi->nextPageCounter, 0);
 	ASSERT_FALSE(fsi->visible);
 	ASSERT_TRUE(fsi->permanent);
 	
@@ -184,7 +184,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(si->id, 0);
 	ASSERT_EQ(si->nextId, 5);
 	ASSERT_EQ(si->numEntries, 10);
-	ASSERT_EQ(si->nextPageCounter, 0);
+	//ASSERT_EQ(si->nextPageCounter, 0);
 	ASSERT_FALSE(si->visible);
 	ASSERT_TRUE(si->permanent);
 	ASSERT_EQ(si->extents.size(), 1);
@@ -212,7 +212,7 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(fsi->bm, sm->bm);
 	ASSERT_EQ(fsi->id, 1);
 	ASSERT_EQ(fsi->numEntries, 2);
-	ASSERT_EQ(fsi->nextPageCounter, 0);
+	//ASSERT_EQ(fsi->nextPageCounter, 0);
 	ASSERT_FALSE(fsi->visible);
 	ASSERT_TRUE(fsi->permanent);
 	
@@ -266,12 +266,13 @@ TEST(SegmentManagerTest, initializeWithFile)
 	vector<uint64_t> segpages;
 	
 	seg = si->segments.find(2)->second;
-	ASSERT_EQ(3, seg->nextPage());
-	ASSERT_EQ(5, seg->nextPage());
-	ASSERT_EQ(8, seg->nextPage());
-	ASSERT_EQ(13, seg->nextPage());
-	ASSERT_EQ(13, seg->nextPage());
-	ASSERT_EQ(13, seg->nextPage());
+	uint64_t pageIterator = 0;
+	ASSERT_EQ(3, seg->nextPage(pageIterator));
+	ASSERT_EQ(5, seg->nextPage(pageIterator));
+	ASSERT_EQ(8, seg->nextPage(pageIterator));
+	ASSERT_EQ(13, seg->nextPage(pageIterator));
+	ASSERT_EQ(13, seg->nextPage(pageIterator));
+	ASSERT_EQ(13, seg->nextPage(pageIterator));
 	
 	segpages = { 3, 5, 8, 13 };
 	for (size_t i = 0; i < segpages.size(); i++)
@@ -283,11 +284,12 @@ TEST(SegmentManagerTest, initializeWithFile)
 	}
 	
 	seg = si->segments.find(3)->second;
-	ASSERT_EQ(4, seg->nextPage());
-	ASSERT_EQ(6, seg->nextPage());
-	ASSERT_EQ(7, seg->nextPage());
-	ASSERT_EQ(7, seg->nextPage());
-	ASSERT_EQ(7, seg->nextPage());
+	pageIterator=0;
+	ASSERT_EQ(4, seg->nextPage(pageIterator));
+	ASSERT_EQ(6, seg->nextPage(pageIterator));
+	ASSERT_EQ(7, seg->nextPage(pageIterator));
+	ASSERT_EQ(7, seg->nextPage(pageIterator));
+	ASSERT_EQ(7, seg->nextPage(pageIterator));
 	
 	segpages.clear();
 	segpages = { 4, 6, 7 };
@@ -301,10 +303,11 @@ TEST(SegmentManagerTest, initializeWithFile)
 	
 	
 	seg = si->segments.find(4)->second;
-	ASSERT_EQ(2, seg->nextPage());
-	ASSERT_EQ(9, seg->nextPage());
-	ASSERT_EQ(10, seg->nextPage());
-	ASSERT_EQ(10, seg->nextPage());
+	pageIterator = 0;
+	ASSERT_EQ(2, seg->nextPage(pageIterator));
+	ASSERT_EQ(9, seg->nextPage(pageIterator));
+	ASSERT_EQ(10, seg->nextPage(pageIterator));
+	ASSERT_EQ(10, seg->nextPage(pageIterator));
 	
 	segpages.clear();
 	segpages = { 2, 9, 10 };

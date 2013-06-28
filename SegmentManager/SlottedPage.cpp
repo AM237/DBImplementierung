@@ -12,4 +12,3 @@ void SlottedPage::compactify()
 { 
 	return;
 }
-

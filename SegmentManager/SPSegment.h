@@ -9,6 +9,7 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "RegularSegment.h"
+#include "SlottedPage.h"
 #include "SegmentFSI.h"
 #include "Record.h"
 #include "TID.h"
@@ -30,10 +31,11 @@ public:
 	~SPSegment();
 
 	// Searches through the segment's pages looking for a page with enough 
-	// space to store r. Returns nullptr iff there is no space, i.e. segment 
-	// must be grown. Otherwise returns the TID identifying the location 
-	// where r was stored. This is implemented effciently using the seg's FSI.
-	TID* insert(const Record& r);
+	// space to store r. Throws SPSegmentNoSpace exception iff there is no space,
+	// i.e. segment must be grown. Otherwise returns the TID identifying the 
+	// location where r was stored. This is implemented effciently using the 
+	// seg's FSI.
+	TID insert(const Record& r);
 
 	// Deletes the record pointed to by tid and updates the 
 	// page header accordingly

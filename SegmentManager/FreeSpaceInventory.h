@@ -9,7 +9,7 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "SegmentInventory.h"
-#include "SegManConst.h"
+#include "SMConst.h"
 #include <map>
 
 // The FreeSpaceInventory is a special segment in the DBMS. It manages and
@@ -79,7 +79,7 @@ private:
 	BufferManager* bm;
 	
 	// Segment manager parameters
-	SegManConst params;
+	SMConst params;
 	
 	// Number of [start, end) entries managed by the FreeSpaceInventory
 	uint64_t numEntries;

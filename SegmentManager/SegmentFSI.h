@@ -9,17 +9,10 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "Segment.h"
+#include "SMConst.h"
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-namespace SM_EXC
-{
-	struct FsiOverflowException: public std::exception
-	{
-  		virtual const char* what() const throw()
-  		{ return "No new page can be assigned to this segment's FSI"; }
-	};
-}
 
 // An entry in the SegmentFSI, marking 16 discrete fullness values for a pair
 // of pages.
@@ -90,6 +83,10 @@ private:
 
 	// BufferManager handler
 	BufferManager* bm;
+
+	// The free space mapping discretization (see above), maps integer keys 
+	// (index) to integer values representing free bytes. 
+	std::vector<int> freeBytes;
 
 	// The set of pages over which this SegmentFSI is spread. Assumed to fit
 	// on the first page at all times.

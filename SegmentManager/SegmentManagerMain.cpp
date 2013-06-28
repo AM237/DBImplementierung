@@ -5,6 +5,7 @@
 
 
 #include "Segment.h"
+#include "TID.h"
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
