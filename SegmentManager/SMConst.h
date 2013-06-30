@@ -14,10 +14,16 @@ namespace SM_EXC
   		{ return "No new page can be assigned to this segment's FSI"; }
 	};
 
+	struct InputLengthException: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "Input is too large to fit on any page"; }
+	};
+
 	struct RecordLengthException: public std::exception
 	{
   		virtual const char* what() const throw()
-  		{ return "Record is too large to fit on any page"; }
+  		{ return "Record is too large to fit on any page with a header"; }
 	};
 
 	struct SPSegmentFullException: public std::exception

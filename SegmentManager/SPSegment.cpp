@@ -48,74 +48,43 @@ SPSegment::~SPSegment()
 // _____________________________________________________________________________
 TID SPSegment::insert(const Record& r)
 {
-	// Look up a page in this segment's FSI that is guaranteed to be able to 
-	// store r. The length of the record is given in bytes.
+	// Query this segment's FSI for the index of a page in this segment
+	// (assume pages are numbered from 0 to n) which can accomodate r.
+	// Throws exception if necessary to signal layer above that this 
+	// segment must be grown, or if required size is too large for any page.
 	//
-	// First, dynamically determine what the required space identifier must be.
-	// The required space identifier is the index in the discretized free space
-	// mapping, so that its mapped value (guaranteed free space) is the smallest
-	// mapped value that is still greater than or equal to the required space.
-	auto recordLength = r.getLen();
-	int spaceIndex = -1;
-	for (size_t i = 0; i < fsi->freeBytes.size(); i++)
-		if (fsi->freeBytes[i] >= (int)recordLength) { spaceIndex = i; break; }
-	if (spaceIndex == -1) { SM_EXC::RecordLengthException e; throw e; }
-
-	// Next, look through the FSI for a page with this discretized value.
-	// Prefer fuller pages, and initialized pages over non initialized pages.
-	uint64_t insertPage = 0;
-	while (insertPage != 0)
-	{
-		for (size_t i = 0; i < fsi->inv.size(); i++)
-		{
-			if (fsi->inv[i].page1 == spaceIndex) { insertPage = 2*i; break; }
-			if (fsi->inv[i].page2 == spaceIndex) { insertPage = 2*i+1; break; }
-		}
-
-		// If no page with exactly the required free space is available,
-		// search for a page with the next order of available free space
-		spaceIndex++;	
-	}
-
-	// No page with required free space found -> segment must be grown.
-	// Throw exception to signal layer above that this segment must be grown.
-	if (insertPage == 0) { SM_EXC::SPSegmentFullException e; throw e; }
+	// Start with best case scenario, where only the length of the record is
+	// relevant. In this case, try to find an free and compatible slot in the
+	// page. If this is not possible, check if the page has enough space for
+	// the record and a new slot. If this is again not possible, then begin
+	// a new search, this time for r.getLen() + sizeof(slot) bytes.
+	auto insertPage = fsi->getPage(r.getLen());
+	bool pageInitialized = insertPage.second;
 
 	// Now that one of this segment's pages has been chosen for the insert,
 	// load the page, and if it has not yet been initialized, add an SP header.
 	// Otherwise, it has already been initialized, so update the header, the
 	// first free slot, and the data pointer.
-	bool pageInitialized = true;
-	if (spaceIndex == (int)fsi->freeBytes.size()-1) pageInitialized = false;
-	uint64_t pageIterator = insertPage;
-
-	BufferFrame& bf = bm->fixPage(this->nextPage(pageIterator), true);
-	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
-
-	// Initialize page header to reflect state after insertion of record
-	SlottedPageHeader& header = slottedPage->getHeader();
-	if (!pageInitialized)
-	{
-		header.lsn = 0;
-		header.slotCount = 1;
-		header.firstFreeSlot = 1;
-		header.dataStart = BM_CONS::pageSize - recordLength;
-		header.freeSpace = BM_CONS::pageSize - sizeof(SlottedPageHeader) - 
-		                   sizeof(SlottedPageSlot);
-	}
+	//
+	// If the page has not been initialized, then by definition it contains no
+	// free slots -> check that record + 1x slot fit in pageSize-sizeof(header)
+	auto dataSize = BM_CONS::pageSize-sizeof(SlottedPageHeader);
+	if (!pageInitialized && (r.getLen() + sizeof(SlottedPageSlot) > dataSize))
+		{ SM_EXC::RecordLengthException e; throw e;}
 	
+	// Otherwise, page has been initialized and was chosen now already
+	// considering the space taken up by the header. Therefore, proceed as above
+	uint64_t fixedPage = this->nextPage(insertPage.first);
+	BufferFrame& bf = bm->fixPage(fixedPage, true);
+	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
+	auto insertResult = slottedPage->insert(r,pageInitialized);
+	// if (insertResult == nullptr) ...
 	bm->unfixPage(bf, true);
 
-
-
-
-	
-
-
-
-
-	TID t = { 0, 0};
-	return t;
+	// Update the page in the FSI in which the record was inserted.
+	fsi->update(insertPage.first, insertResult->second);
+	TID returnTID = { fixedPage, insertResult->first };
+	return returnTID;
 }
 
 // _____________________________________________________________________________
@@ -123,22 +92,8 @@ void SPSegment::notifySegGrowth(Extent e)
 {
 	// Add entries to the FSI for as many pages as exist in the given extent,
 	// and materialize the changes.
-	//
-	// If current number of pages in the
-	// extent is uneven, then the inventory contains a surplus marker
-	// (see constructor)
-	uint64_t newEntryStart = e.start;
-	if (this->getSize() % 2 != 0)
-	{
-		fsi->inv.back().page2 = 12;
-		newEntryStart++;
-	}
-
-	for (uint64_t i = newEntryStart; i < e.end; i=i+2)
-	{
-		FreeSpaceEntry f = {12, 12};
-		fsi->inv.push_back(f);
-	}
+	bool useLast = this->getSize() % 2 == 0? false : true;
+	fsi->grow(e, useLast);
 
 	// Materialize changes
 	//
@@ -151,53 +106,12 @@ void SPSegment::notifySegGrowth(Extent e)
 	sort(pages.begin(), pages.end());
 	uint64_t availableSpace = pages.size() * BM_CONS::pageSize;
 	uint64_t requiredSpace = fsi->getRuntimeSize();
-
 	
 	// Must look through the FSI for an empty page to add to the FSI's extents
 	while (requiredSpace > availableSpace)
 	{
-		uint64_t segmentSize = this->getSize();
-		uint64_t newFSIPageIndex = 0;
-		for (size_t i = 0; i < fsi->inv.size(); i++)
-		{
-			// First page of entry, must not be the first page of the segment.
-			if (i != 0 && fsi->inv[i].page1 == 12)
-			{
-				newFSIPageIndex = 2*i;
-				fsi->inv[i].page1 = 0;
-				break;
-			}
-
-			// Second page of entry, if last entry in inventory, only valid
-			// if the segment has an even number of pages. Otherwise
-			// the last entry of the inventory has a surplus page marker.
-			else if (!(i == fsi->inv.size()-1 && segmentSize % 2 != 0) &&
-				     fsi->inv[i].page2 == 12)
-			{
-				newFSIPageIndex = 2*i + 1;
-				fsi->inv[i].page2 = 0;
-				break;
-			}
-		}
-
-		// Add empty page found to FSI's extents.
-		if (newFSIPageIndex == 0) { SM_EXC::FsiOverflowException e; throw e; }
-		bool pageAbsorbed = false;
-
-		// Check if page can be integrated into an existing extent, otherwise
-		// create new extent
-		for (Extent& e : fsi->extents)
-		{
-			if (e.start == newFSIPageIndex+1) e.start = newFSIPageIndex;
-			else if (e.end == newFSIPageIndex) e.end = newFSIPageIndex+1;
-			pageAbsorbed = true;
-			break;
-		}
-		if (!pageAbsorbed)
-		{
-			Extent e = { newFSIPageIndex, newFSIPageIndex+1};
-			fsi->extents.push_back(e);
-		}
+		bool surplus = this->getSize() % 2 != 0 ? true : false;
+		fsi->absorbPage(surplus);
 
 		// Update loop condition
 		pages.clear();
@@ -208,7 +122,8 @@ void SPSegment::notifySegGrowth(Extent e)
 		requiredSpace = fsi->getRuntimeSize();
 	}
 
-	// Extents now have enough space to hold the serialized FSI
+	// Extents now have enough space to hold the serialized FSI,
+	// pages vector is sorted.
 	auto serialized = fsi->serialize();
 	auto it = serialized.first;
 	uint64_t remainingBytes = serialized.second;

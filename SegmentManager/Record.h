@@ -6,6 +6,7 @@
 #define RECORD_H
 
 #include <string.h>
+#include <stdlib.h>
 
 // A simple Record implementation (without custom allocator and error handling)
 class Record {

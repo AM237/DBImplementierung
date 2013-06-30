@@ -38,6 +38,7 @@ struct FreeSpaceEntry {
 // according to the following linear / logarithmic scale:
 //
 // Value -> At least N remaining bytes:
+// 0 -> 0
 // 1 -> 8
 // 2 -> 16
 // 3 -> 32
@@ -48,10 +49,9 @@ struct FreeSpaceEntry {
 // 8 -> 1024
 // 9 -> 2048
 // 10 -> 3072
-// 11 -> 4096 - headerSize
-// 12 -> 4096 (uninitialized)
+// 11 -> 4096
 //
-// A value of 0 for a page entry in a FreeSpaceEntry marks the given page
+// A value of 16 for a page entry in a FreeSpaceEntry marks the given page
 // as being used by the SegmentFSI
 class SegmentFSI
 {
@@ -76,8 +76,29 @@ public:
 	// is found and then deserializes the FSI completely.
 	void deserialize(unsigned char* bytes);
 
-	// Returns the runtime size of this SegmentFSI in bytes.
+	// Returns the runtime size of this SegmentFSI in bytes: size of 
+	// extents + size of inv
 	uint64_t getRuntimeSize();
+
+	// Updates the inventory by performing a discretization of the new
+	// available free space, and updating the appropriate page entry.
+	// page is the relative page index of the page inside this segment.
+	void update(uint64_t page, uint32_t value);
+
+	// Returns the index of the page in this segment (assume numbering
+	// from 0 to n) that can accomdate #requiredSize bytes. Throws 
+	// SM_EXC::SegmentFullException when this is true for no page, i.e.
+	// the segment must be grown.
+	std::pair<uint64_t, bool> getPage(unsigned requiredSize);
+
+	// Adds #numPages page makers to the inventory. Starts with last entry
+	// in current inventory iff useLast == true
+	void grow(Extent e, bool useLast);
+
+	// Instructs the FSI to look for an empty page in the segment, and to use
+	// this page as part of the FSI. #surplus dictates whether the FSI currently
+	// holds an extra page marker or not (see FreeSpaceEntry)
+	void absorbPage(bool surplus);
 
 private:
 
@@ -85,16 +106,17 @@ private:
 	BufferManager* bm;
 
 	// The free space mapping discretization (see above), maps integer keys 
-	// (index) to integer values representing free bytes. 
+	// (index) to integer values representing free bytes (see above). 
+	// Constraint: last entry contains number of bytes in an empty page.
 	std::vector<int> freeBytes;
-
-	// The set of pages over which this SegmentFSI is spread. Assumed to fit
-	// on the first page at all times.
-	std::vector<Extent> extents;
 
 	// Free space information for pairs of pages. Note: may contain a surplus
 	// page entry if the size of the segment is uneven.
 	std::vector<FreeSpaceEntry> inv;
+
+	// The set of pages over which this SegmentFSI is spread. Assumed to fit
+	// on the first page at all times.
+	std::vector<Extent> extents;
 };
 
 #endif  // SEGMENTFSI_H
