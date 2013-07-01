@@ -29,8 +29,11 @@ struct SlottedPageHeader
 // A slotted page slot ---------------------------------------------------------
 struct SlottedPageSlot
 {
-	// offset and length of corresponding data item
-	uint32_t offset, length;
+	// offset and length of corresponding data item. Reserve a bit to tell
+	// whether this slot is free or not.
+	unsigned int empty: 1;
+	unsigned int offset: 15;
+	unsigned int length: 16;
 };
 
 
@@ -56,8 +59,9 @@ public:
 	// new slot is not possible, returns nullptr.
 	std::shared_ptr<std::pair<uint8_t,uint32_t>>insert(const Record& r,bool in);
 
-	// Presses data blocks together to make space for more incoming data.
-	// Updates header and the corresponding slots.
+	// Rearranges/ Presses data blocks together to make space for more incoming 
+	// data. Updates header and the corresponding slots (cleans out slots
+	// so that only non empty slots are stored)
 	void compactify();
 
 	

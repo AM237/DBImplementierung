@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	optind = 1;
 	while(true)
 	{
-		int c = getopt_long(argc, argv, "rvns", options, NULL);
+		int c = getopt_long(argc, argv, "", options, NULL);
 		if (c == -1) break;
 		switch (c)
 		{
