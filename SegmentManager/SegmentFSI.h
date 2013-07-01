@@ -88,7 +88,8 @@ public:
 	// Returns the index of the page in this segment (assume numbering
 	// from 0 to n) that can accomdate #requiredSize bytes. Throws 
 	// SM_EXC::SegmentFullException when this is true for no page, i.e.
-	// the segment must be grown.
+	// the segment must be grown. Second value in pair is true iff the returned
+	// page is empty.
 	std::pair<uint64_t, bool> getPage(unsigned requiredSize);
 
 	// Adds #numPages page makers to the inventory. Starts with last entry

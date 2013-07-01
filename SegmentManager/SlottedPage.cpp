@@ -93,7 +93,9 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 			return returnPair;	
 		}
 
+		// Case 3
 		else return nullptr;
 	}
-	
+
+	return nullptr;
 }

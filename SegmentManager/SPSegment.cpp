@@ -54,37 +54,52 @@ TID SPSegment::insert(const Record& r)
 	// segment must be grown, or if required size is too large for any page.
 	//
 	// Start with best case scenario, where only the length of the record is
-	// relevant. In this case, try to find an free and compatible slot in the
+	// relevant. In this case, try to find a free and compatible slot in the
 	// page. If this is not possible, check if the page has enough space for
 	// the record and a new slot. If this is again not possible, then begin
 	// a new search, this time for r.getLen() + sizeof(slot) bytes.
-	auto insertPage = fsi->getPage(r.getLen());
-	bool pageInitialized = insertPage.second;
+	auto slotSize = sizeof(SlottedPageSlot);
+	bool secondRun = false;
+	while (true)
+	{
+		auto insertPage = secondRun? fsi->getPage(r.getLen()+slotSize) : 
+			                         fsi->getPage(r.getLen());
+		bool pageInitialized = insertPage.second;
 
-	// Now that one of this segment's pages has been chosen for the insert,
-	// load the page, and if it has not yet been initialized, add an SP header.
-	// Otherwise, it has already been initialized, so update the header, the
-	// first free slot, and the data pointer.
-	//
-	// If the page has not been initialized, then by definition it contains no
-	// free slots -> check that record + 1x slot fit in pageSize-sizeof(header)
-	auto dataSize = BM_CONS::pageSize-sizeof(SlottedPageHeader);
-	if (!pageInitialized && (r.getLen() + sizeof(SlottedPageSlot) > dataSize))
-		{ SM_EXC::RecordLengthException e; throw e;}
+		// Now that one of this segment's pages has been chosen for the insert,
+		// load the page, and if it has not yet been initialized, add an SP
+		// header. Otherwise, it has already been initialized, so update the 
+		// header, the first free slot, and the data pointer.
+		//
+		// If the page has not been initialized, then by definition it contains 
+		// no free slots -> check that record + 1x slot fit in 
+		// pageSize-sizeof(header)
+		auto dataSize = BM_CONS::pageSize-sizeof(SlottedPageHeader);
+		if (!pageInitialized && (r.getLen()+slotSize > dataSize))
+			{ SM_EXC::RecordLengthException e; throw e;}
 	
-	// Otherwise, page has been initialized and was chosen now already
-	// considering the space taken up by the header. Therefore, proceed as above
-	uint64_t fixedPage = this->nextPage(insertPage.first);
-	BufferFrame& bf = bm->fixPage(fixedPage, true);
-	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
-	auto insertResult = slottedPage->insert(r,pageInitialized);
-	// if (insertResult == nullptr) ...
-	bm->unfixPage(bf, true);
-
-	// Update the page in the FSI in which the record was inserted.
-	fsi->update(insertPage.first, insertResult->second);
-	TID returnTID = { fixedPage, insertResult->first };
-	return returnTID;
+		// Otherwise, page has been initialized and was chosen now already
+		// considering the space taken up by the header. Therefore, proceed 
+		// as above
+		uint64_t fixedPage = this->nextPage(insertPage.first);
+		BufferFrame& bf = bm->fixPage(fixedPage, true);
+		SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
+		auto insertResult = slottedPage->insert(r,pageInitialized);
+		if (insertResult == nullptr)
+		{
+			if (secondRun) { SM_EXC::SPSegmentFullException e; throw e; }
+			else secondRun = true;
+		}
+		else 
+		{ 
+			bm->unfixPage(bf, true);
+	
+			// Update the page in the FSI in which the record was inserted.
+			fsi->update(insertPage.first, insertResult->second);
+			TID returnTID = { fixedPage, insertResult->first };
+			return returnTID;
+		}
+	}
 }
 
 // _____________________________________________________________________________
