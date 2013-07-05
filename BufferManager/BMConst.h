@@ -27,6 +27,12 @@ namespace BM_EXC
   		virtual const char* what() const throw()
   		{ return "No frame was suggested for replacement"; }
 	};
+
+	struct IllegalPathException: public std::exception
+	{
+  		virtual const char* what() const throw()
+  		{ return "Something went wrong - should not have reached this code"; }
+	};
 }
 
 namespace BM_CONS

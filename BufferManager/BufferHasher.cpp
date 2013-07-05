@@ -96,3 +96,9 @@ void BufferHasher::unlockBucket(uint64_t bucket)
 	if (bucket >= size) return;
 	locks->at(hash(bucket)).unlock();
 }
+
+// _____________________________________________________________________________
+uint64_t BufferHasher::getSize()
+{
+	return this->size;
+}

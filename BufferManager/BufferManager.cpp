@@ -6,9 +6,8 @@
 #include "BufferManager.h"
 #include <fcntl.h>
 #include <sys/mman.h>
-
-#include <chrono>
 #include <thread>
+
 using namespace std;
 
 //______________________________________________________________________________
@@ -59,13 +58,13 @@ int BufferManager::initializeDatabase(const char* filename)
 				cout <<"Error creating database file (writing): "<<errno <<endl;
 				exit(1);
 			}
-		
+
 		} else {
-		
+
   			cout << "Error opening the database file" << endl;
   			exit(1);
 		}
-		
+
 	// else file exists -> check file consistency: should be at least n pages 
 	// worth of bytes and total number of bytes should be a multiple of the 
 	// page size.
@@ -79,7 +78,7 @@ int BufferManager::initializeDatabase(const char* filename)
 			cout << "Error seeking to end of file: " << errno << endl;
 			exit(1);
 		}
-		
+
 		uint64_t fileBytes = ftell(dbFile);
 
 		if (fileBytes % BM_CONS::pageSize != 0 ||
@@ -87,9 +86,9 @@ int BufferManager::initializeDatabase(const char* filename)
 		{			
 			cout << "Database file is not formatted correctly" << endl;
 			exit(1);
-		
+
 		} else {
-		
+
 			if (lseek(fileno(dbFile), 0, SEEK_SET) < 0)
 		    {
 				cout << "Error seeking to start of file: " << errno << endl;
@@ -116,7 +115,7 @@ int BufferManager::initializeDatabase(const char* filename)
 std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
 {
 	uint64_t sizeBefore = numPages;
-	
+
 	// seek to end of file
 	if (lseek(fileDescriptor, 0, SEEK_END) < 0)
 	{
@@ -134,7 +133,7 @@ std::pair<uint64_t, uint64_t> BufferManager::growDB(uint64_t pages)
 		exit(1);
 	}
 	numPages += pages;
-	
+
 	uint64_t sizeAfter = numPages;
 	return pair<uint64_t, uint64_t>(sizeBefore, sizeAfter);
 }
@@ -199,20 +198,23 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	for (size_t i = 0; i < frames->size(); i++)
 	{
 		BufferFrame* bf = frames->at(i);
-		if(!bf->tryLockFrame(exclusive, true))
+		if (bf->isClient()) continue;
+		if(!bf->tryLockFrame(exclusive))
         {
            	bmlock.unlock();
             goto top;
         }
+        
 		if (bf->pageId == pageId)
-        {   	
+        {
             replacer->pageFixedAgain(bf);
             bmlock.unlock();
 			return *bf;
         }
-        bf->unlockFrame(true);
+        bf->unlockFrame();
 	}
 	bmlock.unlock();
+
 
 	// Case: page with pageId not buffered and space available in buffer
 	// -> read from file into a free buffer frame, and add an association
@@ -224,24 +226,26 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
 	for (uint64_t i = 0; i < numFrames; i++)
 	{
 		BufferFrame* frame = hasher->nextFrame();
-		if(!frame->tryLockFrame(true, true))
-        {
+		if (frame->isClient()) continue;
+		if(!frame->tryLockFrame(true))
+		{
 			bmlock.unlock();
             goto top;
         }
+       
 		if (frame->getData() == nullptr)
 		{
         	spaceFound = true;
             readPageIntoFrame(pageId, frame);
             
-            frame->unlockFrame(true);
-            frame->lockFrame(exclusive, true);
+            frame->unlockFrame();
+            frame->lockFrame(exclusive);
 
             replacer->pageFixedFirstTime(frame);     
             bmlock.unlock();
 			return *frame;
 		}
-		frame->unlockFrame(true);
+		frame->unlockFrame();
 		if (!frame->pageFixed) allPagesFixed = false;
 	}
 
@@ -253,35 +257,48 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive)
     if(!spaceFound)
     {       	
     	// no pages can be replaced
-    	if (allPagesFixed) { BM_EXC::ReplaceFailAllFramesFixed e; throw e; }
+    	if (allPagesFixed) 
+    	{ 
+    		bmlock.unlock();
+    		BM_EXC::ReplaceFailAllFramesFixed e; throw e; 
+    	}
 
        	BufferFrame* frame = replacer->replaceFrame();
-       	if(!frame->tryLockFrame(true, true))
+       	if(!frame->tryLockFrame(true))
         {
            	bmlock.unlock();
             goto top;
         }
 
        	// should never be the case
-       	if (frame == nullptr) { BM_EXC::ReplaceFailNoFrameSuggested e; throw e;}
+       	if (frame == nullptr) 
+       	{
+       		bmlock.unlock(); 
+       		BM_EXC::ReplaceFailNoFrameSuggested e; throw e;
+       	}
        	
        	// should always be the case
        	if (frame->getData() == nullptr)
   		{ 
 			readPageIntoFrame(pageId, frame);
   			            
-            frame->unlockFrame(true);
-            frame->lockFrame(exclusive, true);
+            frame->unlockFrame();
+            frame->lockFrame(exclusive);
 
             replacer->pageFixedFirstTime(frame);
   			bmlock.unlock();
 			return *frame;
 		} 
 
-		else { BM_EXC::ReplaceFailFrameUnclean  e; throw e; }
+		else 
+		{
+			bmlock.unlock(); 
+			BM_EXC::ReplaceFailFrameUnclean  e; throw e; 
+		}
 	}
 
 	// Is never returned, because exactly one case above is true
+	BM_EXC::IllegalPathException e; throw e;
 	return *(new BufferFrame());
 }
 
@@ -304,7 +321,8 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty)
 		// no longer dirty	
 		frame.isDirty = false;
 	}
-	frame.unlockFrame(true);
+
+	frame.unlockFrame();
 	bmlock.unlock();
 }
 

@@ -52,8 +52,9 @@ public:
 	// Iterate through frames (cyclic) managed by this hasher
 	BufferFrame* nextFrame();
 
-	std::mutex lock;
-	
+	// Retrieve the number of frames managed by this hasher
+	uint64_t getSize();
+
 
 private:
 

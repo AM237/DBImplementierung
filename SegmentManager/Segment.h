@@ -38,6 +38,9 @@ public:
 
 	// Returns whether this segment is public (true) or private (false)
 	bool getVisibility() { return visible; }
+
+	// Returns true iff the given page belongs to this segment
+	bool inSegment(uint64_t pageId);
 	
 	// Returns the id of this segment
 	uint64_t getId() { return id; }
@@ -57,9 +60,9 @@ public:
 	// is returned. Example:
 	//
 	// int nextPage = 5;
-	// nextPage(nextPage) -> gives 5th page of segment
-	// nextPage(nextPage) -> gives 6th page of segment
-	// nextPage(nextPage) -> gives 7th page of segment 
+	// nextPage(nextPage) -> gives id of 5th page of segment
+	// nextPage(nextPage) -> gives id of 6th page of segment
+	// nextPage(nextPage) -> gives id of 7th page of segment 
 	// ...
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);

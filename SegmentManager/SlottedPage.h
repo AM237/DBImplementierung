@@ -59,6 +59,18 @@ public:
 	// new slot is not possible, returns nullptr.
 	std::shared_ptr<std::pair<uint8_t,uint32_t>>insert(const Record& r,bool in);
 
+	// Mark the given slot as empty, update firstFreeSlot in header.
+	// Returns true iff slot is valid.
+	bool remove(uint8_t slotId);
+
+	// Returns the record under the given slot. Returns nullptr iff slot invalid
+	std::shared_ptr<Record> lookup(uint8_t slotId);
+
+	// Updates the record at the given slot with r. Constraint: r is at most
+	// as large as the current record at the given slot. Return true iff 
+	// update successful.
+	bool update(uint8_t slotId, const Record& r);
+
 	// Rearranges/ Presses data blocks together to make space for more incoming 
 	// data. Updates header and the corresponding slots (cleans out slots
 	// so that only non empty slots are stored)

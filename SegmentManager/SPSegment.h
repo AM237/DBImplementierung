@@ -39,14 +39,16 @@ public:
 	TID insert(const Record& r);
 
 	// Deletes the record pointed to by tid and updates the 
-	// page header accordingly
+	// page header accordingly. Returns true iff remove was successful
 	bool remove(TID tid);
 
 	// Returns a pointer or reference to the read-only record 
-	// associated with TID tid.
-	Record* lookup(TID tid);
+	// associated with TID tid. Returns nullptr iff page / slot invalid.
+	std::shared_ptr<Record> lookup(TID tid);
 
-	//Updates the record pointed to by tid with the content of record r.
+	// Updates the record pointed to by tid with the content of record r.
+	// Constraint: r must be at most as large as the record it replaces.
+	// Return true iff update successful.
 	bool update(TID tid, const Record& r);
 
 	// Override

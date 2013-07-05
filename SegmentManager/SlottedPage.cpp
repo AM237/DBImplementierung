@@ -76,6 +76,8 @@ void SlottedPage::compactify()
 	}
 }
 
+
+
 // _____________________________________________________________________________
 shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in) 
 { 
@@ -175,4 +177,42 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	}
 
 	return nullptr;
+}
+
+
+// _____________________________________________________________________________
+bool SlottedPage::remove(uint8_t slotId)
+{
+	 if (slotId >= header.slotCount) return false;
+	 reinterpret_cast<SlottedPageSlot*>(data)[slotId].empty = 1;
+	 if (header.firstFreeSlot > slotId) header.firstFreeSlot = slotId;
+	 return true;
+}
+
+// _____________________________________________________________________________
+shared_ptr<Record> SlottedPage::lookup(uint8_t slotId)
+{
+	 if (slotId >= header.slotCount) return nullptr;
+	 auto slot = reinterpret_cast<SlottedPageSlot*>(data)[slotId];
+	 if (slot.empty == 1) return nullptr;
+
+	 // Extract record from file
+	 auto ptrData = (const char*)data+slot.offset;
+	 shared_ptr<Record> recordPtr (new Record(slot.length, ptrData));
+	 return recordPtr;
+}
+
+// _____________________________________________________________________________
+bool SlottedPage::update(uint8_t slotId, const Record& r)
+{
+	if (slotId >= header.slotCount) return false;
+
+	auto slot = reinterpret_cast<SlottedPageSlot*>(data)[slotId];
+	 if (slot.empty == 1) return false;
+
+	 // Update header and record on file
+	 header.freeSpace += (slot.length - r.getLen());
+	 slot.length = r.getLen();
+	 memcpy(data + slot.offset, r.getData(), r.getLen());
+	 return true;
 }

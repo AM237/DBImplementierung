@@ -103,6 +103,49 @@ TID SPSegment::insert(const Record& r)
 }
 
 // _____________________________________________________________________________
+bool SPSegment::remove(TID tid)
+{
+	// Check that the page actually belongs to this segment
+	if (!this->inSegment(tid.pageId)) return false;
+	
+	// Load page, look for and update slot
+	BufferFrame& bf = bm->fixPage(tid.pageId, true);
+	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
+	bool removeSuccess = slottedPage->remove(tid.slotId);
+	bm->unfixPage(bf, true);
+	return removeSuccess;
+}
+
+// _____________________________________________________________________________
+shared_ptr<Record> SPSegment::lookup(TID tid)
+{
+	// Check that the page actually belongs to this segment
+	if (!this->inSegment(tid.pageId)) return nullptr;
+
+	// Load page, query slotted page
+	BufferFrame& bf = bm->fixPage(tid.pageId, false);
+	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
+	auto record = slottedPage->lookup(tid.slotId);
+	bm->unfixPage(bf, false);
+	return record;
+}
+
+// _____________________________________________________________________________
+bool SPSegment::update(TID tid, const Record& r)
+{
+	// Check that the page actually belongs to this segment
+	if (!this->inSegment(tid.pageId)) return false;
+
+	// Load page, query slotted page
+	BufferFrame& bf = bm->fixPage(tid.pageId, true);
+	SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
+	bool updateSuccess = slottedPage->update(tid.slotId, r);
+	bm->unfixPage(bf, true);
+	return updateSuccess;
+
+}
+
+// _____________________________________________________________________________
 void SPSegment::notifySegGrowth(Extent e)
 {
 	// Add entries to the FSI for as many pages as exist in the given extent,

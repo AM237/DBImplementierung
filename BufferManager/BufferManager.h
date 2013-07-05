@@ -14,7 +14,11 @@
 #include <mutex>
 
 
-// Manages page IO to/in main memory
+// Manages page IO in main memory. Implemented transaction model: users can fix
+// multiple pages before unfixing an owned page. Multithreading is supported
+// for the fix and unfix procedures only. Unfix commits data directly to page
+// (no lazy update). Behavior is undefined if a fixed page is fixed again before
+// being unfixed, unless it is fixed both times as read only.
 class BufferManager
 {
 public:
@@ -25,6 +29,8 @@ public:
 				  int numPages=BM_CONS::defaultNumPages);
 				  
 	// Destructor. Write all dirty frames to disk and free all resources.
+	//
+	// FRIEND_TEST(BufferManagerTest, constructor);
 	~BufferManager();
 	
 	// A method to retrieve frames given a page ID and indicating whether the
@@ -38,11 +44,14 @@ public:
 	// not. If dirty, the page manager must write it back to disk. It does not
 	// have to write it back immediately, but must not write it back before
 	// unfixPage is called.
+	//
+	//FRIEND_TEST(BufferManagerTest, fixUnfixPageWithReplace);
 	void unfixPage(BufferFrame& frame, bool isDirty);
 
 	// Appends #numPages worth of space to the end of the database file.
 	// Returns the page delimiters of the group of pages just created,
 	// in the form [start, end)
+	FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	std::pair<uint64_t, uint64_t> growDB(uint64_t numPages);
 
 
@@ -60,6 +69,8 @@ private:
     
    	// If no file with name = filename exists, create a file
 	// with #numPages initial pages. Returns file descriptor to database.
+	FRIEND_TEST(SegmentManagerTest, initializeNoFile);
+	FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	int initializeDatabase(const char* filename);
     
     // Manage page replacements
@@ -82,8 +93,6 @@ private:
 
 	// Handle concurrent access to the BM's data structures and procedures
 	 std::mutex bmlock;
-
-	 std::mutex lockSwitch;
 };
 
 #endif  // BUFFERMANAGER_H

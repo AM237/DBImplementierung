@@ -37,6 +37,17 @@ uint64_t Segment::getSize()
 	return counter;
 }
 
+// _____________________________________________________________________________
+bool Segment::inSegment(uint64_t page)
+{
+	bool inSegment = false;
+	for (Extent& e : this->extents)
+		if (e.start <= page && page < e.end)
+			{ inSegment = true; break; }
+
+	return inSegment;
+}
+
 
 // _____________________________________________________________________________
 uint64_t Segment::nextPage(uint64_t& nextPageCounter)
