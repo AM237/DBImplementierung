@@ -19,9 +19,9 @@ uint64_t extractPage(TID tid) {
 
 const unsigned initialSize = 100; // in (slotted) pages
 const unsigned totalSize = initialSize+50; // in (slotted) pages
-const unsigned maxInserts = 1000ul*1000ul;
-const unsigned maxDeletes = 10ul*1000ul;
-const unsigned maxUpdates = 10ul*1000ul;
+const unsigned maxInserts = 1000ul*1000ul / 10; // take 1/10 to make test quicker
+const unsigned maxDeletes = 10ul*1000ul / 10; // take 1/10 to make test quicker
+const unsigned maxUpdates = 10ul*1000ul / 10; // take 1/10 to make test quicker
 const double loadFactor = .8; // percentage of a page that can be used to store the payload
 const vector<string> testData = {
    "640K ought to be enough for anybody",
@@ -63,11 +63,11 @@ int main(int argc, char** argv) {
 
    Random64 rnd;
 
-   cout << "finished setting up" << endl;
-   exit(1);
+   //cout << "finished setting up" << endl;
 
-   // Insert some records
-   for (unsigned i=0; i<5000; ++i) {
+   // Insert some records ------------------------------------------------------
+   cout << "Inserting records ... " << endl;
+   for (unsigned i=0; i<maxInserts; ++i) {
       
       // Select string/record to insert
       uint64_t r = rnd.next()%testData.size();
@@ -89,19 +89,9 @@ int main(int argc, char** argv) {
       try { tid = sp->insert(Record(s.size(), s.c_str())); }
       catch (SM_EXC::SPSegmentFullException& e)
       {
-         cout << endl;
-         cout << "Segment cannot accomodate record, growing segment ..."<<endl;
-         cout << endl;
          sm.growSegment(spId);
          tid = sp->insert(Record(s.size(), s.c_str()));
       }
-
-      /*
-      cout << "main: tid representation " << tid.intRepresentation << endl;
-      cout << "main: page id: " << tid.pageId << endl;
-      cout << "main: slot id: " << (uint16_t)tid.slotId << endl;
-      */
-
 
       // TIDs should not be overwritten
       assert(values.find(tid.intRepresentation)==values.end()); 
@@ -119,10 +109,27 @@ int main(int argc, char** argv) {
       // assert(pageId < initialSize); 
       usage[pageId]+=s.size();
    }
+   cout << "Finished inserting records. " << endl;
 
 
-   // Lookup & delete some records
-   for (unsigned i=0; i<10000; ++i) {
+   // Lookups ------------------------------------------------------------------
+   cout << "Looking up records ... " << endl;
+   for (auto p : values) {
+      TID tid;
+      tid.intRepresentation = p.first;
+      const std::string& value = testData[p.second];
+      unsigned len = value.size();
+
+      shared_ptr<Record> rec = sp->lookup(tid);
+      assert(rec->getLen() == len);
+      assert(memcmp(rec->getData(), value.c_str(), len)==0);
+   }
+   cout << "Finished lookups" << endl;
+
+/*
+   // Lookup & delete some records ---------------------------------------------
+   cout << "Looking up and deleting some records ... " << endl;
+   for (unsigned i=0; i<maxDeletes; ++i) {
       // Select operation
       bool del = rnd.next()%10 == 0;
 
@@ -144,12 +151,12 @@ int main(int argc, char** argv) {
          usage[pageId]-=len;
       }
    }
+   cout << "Finished look up and delete" << endl;
 
-   cout << "finished look up and delete" << endl;
 
-
-   // Update some values ('usage' counter invalid from here on)
-   for (unsigned i=0; i<10000; ++i) {
+   // Update some values ('usage' counter invalid from here on) ----------------
+   cout << "Updating records ... " << endl;
+   for (unsigned i=0; i<maxUpdates; ++i) {
       // Select victim
       TID tid;
       tid.intRepresentation = values.begin()->first;
@@ -162,10 +169,11 @@ int main(int argc, char** argv) {
       sp->update(tid, Record(s.size(), s.c_str()));
       values[tid.intRepresentation]=r;
    }
-
-   cout << "finished update" << endl;
-
-   // Lookups
+   cout << "Finished update" << endl;
+*/
+   
+   // Lookups ------------------------------------------------------------------
+   cout << "Looking up records ... " << endl;
    for (auto p : values) {
       TID tid;
       tid.intRepresentation = p.first;
@@ -176,7 +184,7 @@ int main(int argc, char** argv) {
       assert(rec->getLen() == len);
       assert(memcmp(rec->getData(), value.c_str(), len)==0);
    }
+   cout << "Finished lookups" << endl;
 
-   cout << "finished lookups" << endl;
    return 0;
 }

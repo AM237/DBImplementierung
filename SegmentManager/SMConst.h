@@ -36,7 +36,7 @@ namespace SM_EXC
 struct SMConst
 {
 	// DB Size in pages
-	static const uint64_t dbSize = 1000;
+	static const uint64_t dbSize = 10000;
 
 	// Size of the buffer manager
 	static const uint64_t bufferSize = 20;

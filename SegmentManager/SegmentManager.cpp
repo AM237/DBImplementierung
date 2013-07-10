@@ -19,7 +19,7 @@ SegmentManager::SegmentManager(const string& filename)
 {	
 	// Start with three pages, one page for the segment inventory,
 	// one page for the space inventory, and one free page
-	bm = new BufferManager(filename, params.bufferSize, 50);
+	bm = new BufferManager(filename, params.bufferSize, SMConst::dbSize);
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
 	segInv = new SegmentInventory(bm, false, 0);	

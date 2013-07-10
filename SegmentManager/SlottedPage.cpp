@@ -87,12 +87,12 @@ void SlottedPage::compactify()
 // _____________________________________________________________________________
 shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in) 
 { 
-	cout << "entered slotted page insert " << endl;
+	/*cout << "entered slotted page insert " << endl;
 	cout << "lsn: " << header.lsn << endl;
 	cout << "slot count: " << header.slotCount << endl;
 	cout << "firstFreeSlot: " << header.firstFreeSlot << endl;
 	cout << "dataStart: " << header.dataStart << endl;
-	cout << "free space: " << header.freeSpace << endl;
+	cout << "free space: " << header.freeSpace << endl;*/
 
 	auto dataSize = BM_CONS::pageSize - sizeof(SlottedPageHeader);
 	auto slotSize = sizeof(SlottedPageSlot);
@@ -102,7 +102,7 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	// at the very end of the page, and a slot right after the header
 	if (!in)
 	{
-		cout << "sp page not initialized" << endl;
+		//cout << "sp page not initialized" << endl;
 		header.lsn = 0;
 		header.slotCount = 1;
 		header.firstFreeSlot = 1;
@@ -126,13 +126,13 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	// 3. If no, return nullptr to signal caller that insert was unsuccessful.
 	else
 	{
-		cout << "sp page initialized" << endl;
+		//cout << "sp page initialized" << endl;
 
 		// Case 1: first free slot is an index to an existing slot
 		auto firstFreeSlot = header.firstFreeSlot;
 		if (firstFreeSlot < header.slotCount)
 		{
-			cout << "using free slot " << firstFreeSlot << endl;
+			//cout << "using free slot " << firstFreeSlot << endl;
 			auto slots = reinterpret_cast<SlottedPageSlot*>(data);
 			auto slot = slots[firstFreeSlot];
 
@@ -169,7 +169,7 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 		// Case 2: Check if record can be added normally (update dataStart)
 		else if (header.freeSpace >= rLength + slotSize)
 		{
-			cout << "add new slot" << endl;
+			//cout << "add new slot" << endl;
 			// compactification may be required
 			if ((header.dataStart-slotSize*header.slotCount)<(rLength+slotSize))
 				this->compactify();
