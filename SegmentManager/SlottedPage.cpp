@@ -4,12 +4,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "SlottedPage.h"
+#include <iostream>
 
 using namespace std;
 
 // _____________________________________________________________________________
 void SlottedPage::compactify() 
 { 
+	cout << "entered compactify" << endl;
 	auto dataSize = BM_CONS::pageSize - sizeof(SlottedPageHeader);
 	vector<pair<uint16_t,uint16_t>> freeSpace;
 	vector<SlottedPageSlot> nonFreeSlots;
@@ -17,7 +19,11 @@ void SlottedPage::compactify()
 
 	// Get non free slots in reverse order
 	for (auto i = header.slotCount-1; i >= 0; i--)
-		if (slots[i].empty == 0) nonFreeSlots.push_back(slots[i]);
+	{
+		auto slot = slots[i];
+		if (slot.offset != 0 || slot.length != 0) nonFreeSlots.push_back(slot);
+	}
+		
 
 	// Get free space between non empty slots, also in reverse order
 	for (unsigned i = 0; i < nonFreeSlots.size(); i++)
@@ -63,17 +69,17 @@ void SlottedPage::compactify()
 
 	// Now that defragmentation of the data blocks is done, update the page
 	// header, and write the updated slots (in reverse order)
-	header.slotCount = nonFreeSlots.size();
-	header.firstFreeSlot = nonFreeSlots.size();
+	
+	//header.slotCount = nonFreeSlots.size();
+	//header.firstFreeSlot = nonFreeSlots.size();
 	header.dataStart = nonFreeSlots[0].offset;
 
-	for (size_t i = 0; i < nonFreeSlots.size(); i++)
+	/*for (size_t i = 0; i < nonFreeSlots.size(); i++)
 	{
 		auto nonFreeSlot = nonFreeSlots[nonFreeSlots.size()-1-i]; 
-		slots[i].empty = 0;
 		slots[i].offset = nonFreeSlot.offset;
 		slots[i].length = nonFreeSlot.length;
-	}
+	}*/
 }
 
 
@@ -81,6 +87,8 @@ void SlottedPage::compactify()
 // _____________________________________________________________________________
 shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in) 
 { 
+	cout << "entered slotted page insert " << endl;
+	cout << "free space: " << header.freeSpace << endl;
 	auto dataSize = BM_CONS::pageSize - sizeof(SlottedPageHeader);
 	auto slotSize = sizeof(SlottedPageSlot);
 	auto rLength = r.getLen();
@@ -89,13 +97,14 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	// at the very end of the page, and a slot right after the header
 	if (!in)
 	{
+		cout << "sp page not initialized" << endl;
 		header.lsn = 0;
 		header.slotCount = 1;
 		header.firstFreeSlot = 1;
 		header.dataStart = dataSize-rLength;
 		header.freeSpace = dataSize-slotSize-rLength;
 
-		SlottedPageSlot s = { 0, header.dataStart, rLength };
+		SlottedPageSlot s = { header.dataStart, rLength };
 
 		// Write info
 		auto it = (unsigned char*)memcpy(data, &s, slotSize);
@@ -113,10 +122,12 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	// 3. If no, return nullptr to signal caller that insert was unsuccessful.
 	else
 	{
+		cout << "sp page initialized" << endl;
 		// Case 1: first free slot is an index to an existing slot
 		auto firstFreeSlot = header.firstFreeSlot;
 		if (firstFreeSlot < header.slotCount)
 		{
+			cout << "using free slot " << firstFreeSlot << endl;
 			auto slots = reinterpret_cast<SlottedPageSlot*>(data);
 			auto slot = slots[firstFreeSlot];
 
@@ -126,19 +137,21 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 			{
 				// update slot and header
 				auto freed = slot.length - rLength;
-				slot.empty = 0;
 				slot.length = rLength;
 				header.freeSpace += freed;
 				
 				// update the next free slot
 				bool nextFreeSlotFound = false;
 				for (auto i = firstFreeSlot+1; i < header.slotCount; i++)
-					if (slots[i].empty == 1) 
+				{
+					auto slot = slots[i];
+					if (slot.offset == 0 && slot.length == 0) 
 					{ 
 						nextFreeSlotFound = true; 
 						header.firstFreeSlot = i;
 						break;
 					}
+				}
 				if (!nextFreeSlotFound) header.firstFreeSlot = header.slotCount;
 
 				memcpy(data+slot.offset, r.getData(), slot.length);
@@ -151,6 +164,7 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 		// Case 2: Check if record can be added normally (update dataStart)
 		else if (header.freeSpace >= rLength + slotSize)
 		{
+			cout << "add new slot" << endl;
 			// compactification may be required
 			if ((header.dataStart-slotSize*header.slotCount)<(rLength+slotSize))
 				this->compactify();
@@ -158,9 +172,9 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 			header.slotCount++;
 			header.dataStart = header.dataStart-rLength;
 			header.freeSpace = header.freeSpace-slotSize-rLength;
-			if (header.firstFreeSlot==header.slotCount) header.firstFreeSlot++;
+			if (header.firstFreeSlot==header.slotCount-1) header.firstFreeSlot++;
 
-			SlottedPageSlot s = { 0, header.dataStart, rLength };
+			SlottedPageSlot s = { header.dataStart, rLength };
 
 			// Write info
 			memcpy(data+(header.slotCount-1)*slotSize, &s, slotSize);
@@ -175,7 +189,6 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 		// Case 3
 		else return nullptr;
 	}
-
 	return nullptr;
 }
 
@@ -184,7 +197,8 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 bool SlottedPage::remove(uint8_t slotId)
 {
 	 if (slotId >= header.slotCount) return false;
-	 reinterpret_cast<SlottedPageSlot*>(data)[slotId].empty = 1;
+	 reinterpret_cast<SlottedPageSlot*>(data)[slotId].length = 0;
+	 reinterpret_cast<SlottedPageSlot*>(data)[slotId].offset = 0;
 	 if (header.firstFreeSlot > slotId) header.firstFreeSlot = slotId;
 	 return true;
 }
@@ -194,7 +208,7 @@ shared_ptr<Record> SlottedPage::lookup(uint8_t slotId)
 {
 	 if (slotId >= header.slotCount) return nullptr;
 	 auto slot = reinterpret_cast<SlottedPageSlot*>(data)[slotId];
-	 if (slot.empty == 1) return nullptr;
+	 if (slot.length == 0 && slot.offset == 0) return nullptr;
 
 	 // Extract record from file
 	 auto ptrData = (const char*)data+slot.offset;
@@ -208,11 +222,50 @@ bool SlottedPage::update(uint8_t slotId, const Record& r)
 	if (slotId >= header.slotCount) return false;
 
 	auto slot = reinterpret_cast<SlottedPageSlot*>(data)[slotId];
-	 if (slot.empty == 1) return false;
+	if (slot.length == 0 && slot.offset == 0) return false;
 
-	 // Update header and record on file
-	 header.freeSpace += (slot.length - r.getLen());
-	 slot.length = r.getLen();
-	 memcpy(data + slot.offset, r.getData(), r.getLen());
-	 return true;
+	// Check difference between the allotted slot length and the size of the
+	// record. If it fits, then insert directly, otherwise check space right
+	// before dataStart, if it fits there, change the offset, otherwise
+	// compactify and check again. If still not possible, return false.
+	auto spaceDiff = slot.length - r.getLen();
+
+	// Case 1
+	if (spaceDiff >= 0)
+	{
+		// Update header and record on file
+		header.freeSpace += spaceDiff;
+		slot.length = r.getLen();
+		memcpy(data + slot.offset, r.getData(), r.getLen());
+		return true;
+	}
+
+	else
+	{
+		bool secondRun = false;
+		while(true)
+		{
+			auto slotsSize = header.slotCount * sizeof(SlottedPageHeader);
+			auto preStartSpace = header.dataStart - slotsSize;
+
+			// Case 2
+			if (preStartSpace >= r.getLen())
+			{
+				header.freeSpace -= spaceDiff;
+				slot.offset = header.dataStart - r.getLen();
+				slot.length = r.getLen();
+				memcpy(data + slot.offset, r.getData(), r.getLen());
+				return true;
+			}
+
+			// Case 3
+			else
+			{
+				if (secondRun) return false;
+				compactify();
+				secondRun = true;
+			}	
+		}
+		return false;
+	}
 }

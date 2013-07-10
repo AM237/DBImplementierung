@@ -4,6 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "SegmentManager.h"
+#include "RegularSegment.h"
+#include "SPSegment.h"
 
 #include <fcntl.h>
 #include <iostream>
@@ -17,7 +19,7 @@ SegmentManager::SegmentManager(const string& filename)
 {	
 	// Start with three pages, one page for the segment inventory,
 	// one page for the space inventory, and one free page
-	bm = new BufferManager(filename, params.bufferSize, 3);
+	bm = new BufferManager(filename, params.bufferSize, 50);
 	
 	// segment inventory always has id = 0, space inventory always has id = 1
 	segInv = new SegmentInventory(bm, false, 0);	
@@ -58,7 +60,7 @@ BufferManager& SegmentManager::getBufferManager()
 
 
 // _____________________________________________________________________________
-uint64_t SegmentManager::createSegment(bool visible)
+uint64_t SegmentManager::createSegment(segTypes type, bool visible)
 {	
 	// See if there is a free extent available with sufficient pages
 	uint64_t base = params.baseExtentSize;
@@ -71,17 +73,29 @@ uint64_t SegmentManager::createSegment(bool visible)
 		pair<uint64_t, uint64_t> growth = bm->growDB(base);
 		Extent grownExtent(growth.first, growth.second);
 		spaceInv->registerExtent(grownExtent);
-		return createSegment(visible);
+		return createSegment(type, visible);
 	}
 	
 	// e has already been unregistered from the FSI
 	else
 	{
-		// The SM is aware of the existence of only three types of segments:
-		// the SI, FSI, and RegularSegments. Use dynamic_cast to retrieve
-		// desired specializations of RegularSegments.
-		uint64_t newId = segInv->setNextId(); 
-		Segment* newSeg = new RegularSegment(visible, newId, &e);
+		uint64_t newId = segInv->setNextId();
+		Segment* newSeg = nullptr;
+		switch(type)
+		{
+			case RG_SGM:
+				newSeg = new RegularSegment(visible, newId, &e);
+				break;
+				
+			case SP_SGM:
+				newSeg = new SPSegment(bm, visible, newId, &e);
+				break;
+
+			default:
+				cout << "Segment type not recognized" << endl;
+				exit(1);
+		}		
+		
 		bool found = segInv->registerSegment(newSeg);
 		if (found)
 		{
@@ -90,7 +104,6 @@ uint64_t SegmentManager::createSegment(bool visible)
 		}
 		return newId;
 	}
-	
 	return 0;
 }
 
@@ -103,7 +116,6 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 		cout << "Cannot explicitly grow SI, FSI: "
 		     << "these segments grow automatically" << endl;
 		exit(1);
-		
 	}
 	
 	auto toGrow = dynamic_cast<RegularSegment*>(retrieveSegmentById(segId));

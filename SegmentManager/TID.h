@@ -21,9 +21,13 @@
 //
 // 56 Bits for the pageId makes it possible to address more than enough pages
 // Choosing a total of 64 bits allows a TID to be naturally byte aligned.
-typedef struct {
-  uint64_t pageId:56;
-  uint8_t slotId:8;
+typedef union {
+
+	struct {
+		uint64_t pageId:56;
+  		uint8_t slotId:8;		
+	};
+  	uint64_t intRepresentation;
 } TID;
 
 #endif  // TID_H

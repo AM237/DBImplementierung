@@ -58,13 +58,16 @@ TID SPSegment::insert(const Record& r)
 	// page. If this is not possible, check if the page has enough space for
 	// the record and a new slot. If this is again not possible, then begin
 	// a new search, this time for r.getLen() + sizeof(slot) bytes.
+
+	cout << "entered sp insert " << endl;
 	auto slotSize = sizeof(SlottedPageSlot);
 	bool secondRun = false;
 	while (true)
 	{
 		auto insertPage = secondRun? fsi->getPage(r.getLen()+slotSize) : 
-			                         fsi->getPage(r.getLen());
-		bool pageInitialized = insertPage.second;
+			                         fsi->getPage(r.getLen());                         
+		bool pageEmpty = insertPage.second;
+		auto pageToUpdate = insertPage.first;
 
 		// Now that one of this segment's pages has been chosen for the insert,
 		// load the page, and if it has not yet been initialized, add an SP
@@ -75,16 +78,16 @@ TID SPSegment::insert(const Record& r)
 		// no free slots -> check that record + 1x slot fit in 
 		// pageSize-sizeof(header)
 		auto dataSize = BM_CONS::pageSize-sizeof(SlottedPageHeader);
-		if (!pageInitialized && (r.getLen()+slotSize > dataSize))
+		if (pageEmpty && (r.getLen()+slotSize > dataSize))
 			{ SM_EXC::RecordLengthException e; throw e;}
-	
+		
 		// Otherwise, page has been initialized and was chosen now already
 		// considering the space taken up by the header. Therefore, proceed 
 		// as above
 		uint64_t fixedPage = this->nextPage(insertPage.first);
 		BufferFrame& bf = bm->fixPage(fixedPage, true);
 		SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
-		auto insertResult = slottedPage->insert(r,pageInitialized);
+		auto insertResult = slottedPage->insert(r, !pageEmpty);
 		if (insertResult == nullptr)
 		{
 			if (secondRun) { SM_EXC::SPSegmentFullException e; throw e; }
@@ -95,8 +98,10 @@ TID SPSegment::insert(const Record& r)
 			bm->unfixPage(bf, true);
 	
 			// Update the page in the FSI in which the record was inserted.
-			fsi->update(insertPage.first, insertResult->second);
-			TID returnTID = { fixedPage, insertResult->first };
+			fsi->update(pageToUpdate, insertResult->second);
+			TID returnTID;
+			returnTID.pageId = fixedPage;
+			returnTID.slotId = insertResult->first;
 			return returnTID;
 		}
 	}
@@ -150,6 +155,7 @@ void SPSegment::notifySegGrowth(Extent e)
 {
 	// Add entries to the FSI for as many pages as exist in the given extent,
 	// and materialize the changes.
+	cout << "seg size " << this->getSize() << endl;
 	bool useLast = this->getSize() % 2 == 0? false : true;
 	fsi->grow(e, useLast);
 

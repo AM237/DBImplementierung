@@ -42,6 +42,7 @@ public:
 	// FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
 	Extent getExtent(uint64_t numPages);
 
+	
 private:
 
 	// Initializes the free space mapping from the contents given on file

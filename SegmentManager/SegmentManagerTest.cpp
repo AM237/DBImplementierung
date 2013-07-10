@@ -24,7 +24,6 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(si->id, 0);
 	ASSERT_EQ(si->nextId, 2);
 	ASSERT_EQ(si->numEntries, 2);
-	//ASSERT_EQ(si->nextPageCounter, 0);
 	ASSERT_FALSE(si->visible);
 	ASSERT_TRUE(si->permanent);
 	
@@ -44,7 +43,6 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(fsi->bm, sm->bm);
 	ASSERT_EQ(fsi->id, 1);
 	ASSERT_EQ(fsi->numEntries, 1);
-	//ASSERT_EQ(fsi->nextPageCounter, 0);
 	ASSERT_FALSE(fsi->visible);
 	ASSERT_TRUE(fsi->permanent);
 	
@@ -72,19 +70,20 @@ TEST(SegmentManagerTest, initializeNoFile)
 	uint64_t fileBytes = ftell(db);
 	
 	// Check size of db
-	ASSERT_EQ(fileBytes, 3*BM_CONS::pageSize);
+	ASSERT_EQ(fileBytes, BM_CONS::defaultNumPages*BM_CONS::pageSize);
 	
 	// Read in the individual pages
 	vector<uint64_t> pages;
 	int intsPerPage = BM_CONS::pageSize/sizeof(uint64_t);
-	pages.resize(3*intsPerPage);
+	pages.resize(BM_CONS::defaultNumPages*intsPerPage);
 
 	if (lseek(fileno(db), 0, SEEK_SET) < 0)
 	{
 		cout << "Error seeking to start of file: " << errno << endl;
 		exit(1);
 	}
-	if (read(fileno(db), pages.data(), 3*BM_CONS::pageSize) < 0)
+	if (read(fileno(db), pages.data(), 
+		BM_CONS::defaultNumPages*BM_CONS::pageSize) < 0)
 		std::cout << "Error reading test db " << endl;
 		
 	fclose(db);
@@ -106,7 +105,8 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(pages[intsPerPage+1], 2);
 	ASSERT_EQ(pages[intsPerPage+2], 3);
 	
-	for (int i = intsPerPage+3; i < 3*intsPerPage; i++) ASSERT_EQ(pages[i], 0);
+	for (int i = intsPerPage+3; i < BM_CONS::defaultNumPages*intsPerPage; i++)
+		 ASSERT_EQ(pages[i], 0);
 	
 	// Cleanup
 	if (system("rm database") < 0) 
@@ -184,7 +184,6 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(si->id, 0);
 	ASSERT_EQ(si->nextId, 5);
 	ASSERT_EQ(si->numEntries, 10);
-	//ASSERT_EQ(si->nextPageCounter, 0);
 	ASSERT_FALSE(si->visible);
 	ASSERT_TRUE(si->permanent);
 	ASSERT_EQ(si->extents.size(), 1);
@@ -212,7 +211,6 @@ TEST(SegmentManagerTest, initializeWithFile)
 	ASSERT_EQ(fsi->bm, sm->bm);
 	ASSERT_EQ(fsi->id, 1);
 	ASSERT_EQ(fsi->numEntries, 2);
-	//ASSERT_EQ(fsi->nextPageCounter, 0);
 	ASSERT_FALSE(fsi->visible);
 	ASSERT_TRUE(fsi->permanent);
 	
@@ -346,8 +344,8 @@ TEST(SegmentManagerTest, createGrowDropSegment)
 	FreeSpaceInventory* fsi = sm->spaceInv;	
 	
 	// Create 2 regular segments  ----------------------------------------------
-	uint64_t segA = sm->createSegment(true);
-	uint64_t segB = sm->createSegment(true);
+	uint64_t segA = sm->createSegment(segTypes::RG_SGM, true);
+	uint64_t segB = sm->createSegment(segTypes::RG_SGM, true);
 	
 	// Check SI
 	ASSERT_EQ(si->nextId, 4);

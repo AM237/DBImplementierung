@@ -170,10 +170,10 @@ void FreeSpaceInventory::initializeFromFile()
 		Extent ext(1, 2);
 		extents.push_back(ext);
 		
-		// page #2 is free
+		// pages [2, BM_Const::defaultNumPages) is free
 		numEntries = 1;
-		forwardMap.insert(pair<uint64_t, uint64_t>(2, 3));
-		reverseMap.insert(pair<uint64_t, uint64_t>(3, 2));
+		forwardMap.insert(pair<uint64_t,uint64_t>(2, BM_CONS::defaultNumPages));
+		reverseMap.insert(pair<uint64_t,uint64_t>(BM_CONS::defaultNumPages, 2));
 		return;
 	}
 	

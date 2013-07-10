@@ -21,7 +21,6 @@ Segment::Segment(bool permanent, bool visible, uint64_t id, Extent* ex)
 	{
 		Extent e(ex->start, ex->end);
 		this->extents.push_back(e);
-		delete ex;
 	}
 }
 

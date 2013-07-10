@@ -25,8 +25,8 @@ SegmentFSI::SegmentFSI(BufferManager* bm, uint64_t numPages, uint64_t pageStart)
 	for (int i = 0; i < ceil(numPages/2); i++)
 	{
 		FreeSpaceEntry e;
-		if (i == 0) e = {15, size};
-		else 	    e = {size, size};
+		if (i == 0) e = {15,     size-1};
+		else 	    e = {size-1, size-1};
 		inv.push_back(e);
 	}
 
@@ -48,11 +48,22 @@ uint64_t SegmentFSI::getRuntimeSize()
 // _____________________________________________________________________________
 void SegmentFSI::update(uint64_t page, uint32_t value)
 {
-	auto it = upper_bound(freeBytes.begin(), freeBytes.end(), value);
-	unsigned int discretizedValue = freeBytes[it - freeBytes.begin() - 1];
+	cout << "call update with " << page << ", " << value << endl;
 
-	if (page % 2 == 0) inv[page/2].page1 = discretizedValue;
-	else 			   inv[page/2].page2 = discretizedValue;
+	auto it = upper_bound(freeBytes.begin(), freeBytes.end(), value);
+	unsigned int discretizedValue = it - freeBytes.begin() - 1;
+	if (page % 2 == 0)
+	{
+		auto lastValue = inv[page/2].page1;
+		inv[page/2].page1 = discretizedValue;
+		cout << "updated inv[" << page/2 << "].page1 from " << lastValue << " to " << discretizedValue << endl;
+	} 
+	else
+	{
+		auto lastValue = inv[page/2].page2;
+		inv[page/2].page2 = discretizedValue;
+		cout << "updated inv[" << page/2 << "].page1 from " << lastValue << " to " << discretizedValue << endl;
+	}
 }
 
 
@@ -63,29 +74,48 @@ pair<uint64_t, bool> SegmentFSI::getPage(unsigned requiredSize)
 	// mapping, so that its mapped value (guaranteed free space) is the smallest
 	// mapped value that is still greater than or equal to the required space.
 	// Prefers fuller pages, and non empty pages to empty pages.
+
+	cout << "entered get page" << endl;
+
 	bool empty = false;
 	int spaceIndex = -1;
 	for (size_t i = 0; i < freeBytes.size(); i++)
-		if (freeBytes[i] >= (int)requiredSize) { spaceIndex = i; break; } 
-	
+		if (freeBytes[i] >= (int)requiredSize) { spaceIndex = i; break; }
+
+	cout << "spaceIndex is " << spaceIndex << ", required size: " << requiredSize << endl;
+
 	// If requiredSize is larger than any empty space -> throw exception
 	if (spaceIndex == -1) { SM_EXC::InputLengthException e; throw e; }
-	if (spaceIndex == (int)freeBytes.size()-1) empty = true;
 
 	// Find a page with the closest fullness degree to the above value.
 	uint64_t page = 0;
-	while (page != 0)
+	while (true)
 	{
 		for (size_t i = 0; i < inv.size(); i++)
 		{
-			if (inv[i].page1 == spaceIndex) { page = 2*i; break; }
-			if (inv[i].page2 == spaceIndex) { page = 2*i+1; break; }
+			if (inv[i].page1 == spaceIndex) 
+			{ 
+				page = 2*i;
+				if (spaceIndex == (int)freeBytes.size()-1) empty = true;
+				goto afterloop;
+			}
+			if (inv[i].page2 == spaceIndex) 
+			{ 
+				page = 2*i+1;
+				if (spaceIndex == (int)freeBytes.size()-1) empty = true; 
+				goto afterloop;
+			}
 		}
 
 		// If no page with exactly the required free space is available,
 		// search for a page with the next order of available free space
 		if (++spaceIndex >= (int)freeBytes.size()) break;
 	}
+
+	afterloop:
+	cout << "returning page " << page << ", which is ";
+	if(empty) cout << "not initialized " << endl;
+	else cout << "initialized " << endl;
 
 	if (page == 0) { SM_EXC::SPSegmentFullException e; throw e; }
 	return pair<uint64_t, bool>(page, empty);
@@ -97,9 +127,10 @@ void SegmentFSI::grow(Extent e, bool useLast)
 {
 	// The inventory has a surplus marker iff useLast == true
 	uint64_t newEntryStart = e.start;
-	unsigned int size = freeBytes.size();
+	unsigned int size = freeBytes.size()-1;
 	if (useLast)
 	{
+		cout << "resetting page no. " << 2*(inv.size()-1) +1 << endl;
 		inv.back().page2 = size;
 		newEntryStart++;
 	}
@@ -109,6 +140,8 @@ void SegmentFSI::grow(Extent e, bool useLast)
 		FreeSpaceEntry f = { size, size };
 		inv.push_back(f);
 	}
+
+	cout << "fsi size " << 2*inv.size() << endl;
 }
 
 // _____________________________________________________________________________

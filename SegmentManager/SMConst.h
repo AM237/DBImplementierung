@@ -43,7 +43,7 @@ struct SMConst
 	static constexpr float extentIncrease = 1.2f;
 	
 	// The size of a base extent
-	static const uint64_t baseExtentSize = 10;
+	static const uint64_t baseExtentSize = 30;
 };
 
 

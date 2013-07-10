@@ -34,9 +34,10 @@ public:
 	SegmentManager(const std::string& filename);
 	~SegmentManager();
 	
-	// Creates a new segment with one initial extent, and returns its id
+	// Creates a new segment of the given type with one initial extent, 
+	// and returns its id
 	FRIEND_TEST(SegmentManagerTest, createGrowDropSegment);
-	uint64_t createSegment(bool visible);
+	uint64_t createSegment(segTypes type, bool visible);
 	
 	// Drops the segment with the given id. The results in a change in the FSI,
 	// where the pages of the dropped segment are now recorded as being free.
@@ -52,7 +53,8 @@ public:
 	uint64_t growSegment(uint64_t segId);
 	
 	// Returns a pointer to the segment with the given id	
-	// If no such segment exists, a nullptr is returned
+	// If no such segment exists, a nullptr is returned. Use dynamic cast
+	// to individual segment specializations if needed.
 	//
 	// FRIEND_TEST(SegmentManagerTest, initializeWithFile);
 	Segment* retrieveSegmentById(uint64_t segId);
@@ -66,12 +68,12 @@ private:
 	// BufferManager handler
 	BufferManager* bm;
 
+	// The inventory managing the free space (and fragmentation) of the database
+	FreeSpaceInventory* spaceInv;
+
 	// The segment inventory, which contains the concrete mapping of segments
 	// (ids) to the locations (page ranges) of their extents.
 	SegmentInventory* segInv;
-	
-	// The inventory managing the free space (and fragmentation) of the database
-	FreeSpaceInventory* spaceInv;
 	
 	// Segment manager parameters
 	SMConst params;

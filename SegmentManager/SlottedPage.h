@@ -29,10 +29,9 @@ struct SlottedPageHeader
 // A slotted page slot ---------------------------------------------------------
 struct SlottedPageSlot
 {
-	// offset and length of corresponding data item. Reserve a bit to tell
-	// whether this slot is free or not.
-	unsigned int empty: 1;
-	unsigned int offset: 15;
+	// offset and length of corresponding data item. Slot is free iff
+	// offset == 0 == length
+	unsigned int offset: 16;
 	unsigned int length: 16;
 };
 
@@ -50,8 +49,9 @@ public:
 	SlottedPageHeader& getHeader() { return header; }
 	unsigned char* getData() { return data; }
 
-	// Creates a header for this page, and inserts r along with its slot
-	// as the first entry in an empty page. This method does not check whether
+	// Creates a header for this page if necessary, and inserts r along 
+	// with its slot as the first entry in an empty page. 
+	// This method does not check whether
 	// space requirements are fulfilled. Returns the respective slot id and
 	// the new exact free space available.
 	//
@@ -66,9 +66,11 @@ public:
 	// Returns the record under the given slot. Returns nullptr iff slot invalid
 	std::shared_ptr<Record> lookup(uint8_t slotId);
 
-	// Updates the record at the given slot with r. Constraint: r is at most
-	// as large as the current record at the given slot. Return true iff 
-	// update successful.
+	// Updates the record at the given slot with r. If r takes up more space than
+	// the currently stated by the given slot, then check if there is enough
+	// space right before dataStart and update the offset. Otherwise, compactify
+	// the page and check again. If this is still not the case, return false
+	// (no indirection implemented) -> must remove then newly insert the record.
 	bool update(uint8_t slotId, const Record& r);
 
 	// Rearranges/ Presses data blocks together to make space for more incoming 

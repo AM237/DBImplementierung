@@ -19,6 +19,9 @@ public:
 	uint64_t end;
 };
 
+// Specialized segment types
+enum segTypes { segTypes_begin, RG_SGM = segTypes_begin, SP_SGM, segTypes_end };
+
 
 // Abstract class, represents a segment in the DBMS
 class Segment
