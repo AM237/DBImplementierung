@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
    Random64 rnd;
 
    cout << "finished setting up" << endl;
+   exit(1);
 
    // Insert some records
    for (unsigned i=0; i<5000; ++i) {

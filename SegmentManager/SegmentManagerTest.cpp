@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "SegmentManager.h"
+#include "SMConst.h"
 #include <math.h>
 
 using namespace std;
@@ -50,9 +51,9 @@ TEST(SegmentManagerTest, initializeNoFile)
 	ASSERT_EQ(fsi->forwardMap.size(), 1);
 	ASSERT_EQ(fsi->reverseMap.size(), 1);
 	ASSERT_NE(fsi->forwardMap.find(2), fsi->forwardMap.end());
-	ASSERT_NE(fsi->reverseMap.find(3), fsi->reverseMap.end());
-	ASSERT_EQ(fsi->forwardMap.find(2)->second, 3);
-	ASSERT_EQ(fsi->reverseMap.find(3)->second, 2);
+	ASSERT_NE(fsi->reverseMap.find(BM_CONS::defaultNumPages), fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(2)->second, BM_CONS::defaultNumPages);
+	ASSERT_EQ(fsi->reverseMap.find(BM_CONS::defaultNumPages)->second, 2);
 	
 	ASSERT_EQ(fsi->extents.size(), 1);
 	ASSERT_EQ(fsi->extents[0].start, 1);
@@ -103,7 +104,7 @@ TEST(SegmentManagerTest, initializeNoFile)
 	// Check contents: FSI
 	ASSERT_EQ(pages[intsPerPage], 1);
 	ASSERT_EQ(pages[intsPerPage+1], 2);
-	ASSERT_EQ(pages[intsPerPage+2], 3);
+	ASSERT_EQ(pages[intsPerPage+2], BM_CONS::defaultNumPages);
 	
 	for (int i = intsPerPage+3; i < BM_CONS::defaultNumPages*intsPerPage; i++)
 		 ASSERT_EQ(pages[i], 0);
@@ -359,15 +360,20 @@ TEST(SegmentManagerTest, createGrowDropSegment)
 	// Check FSI
 	ASSERT_EQ(fsi->numEntries, 1);
 	
-	// The free space mapping should span one page, namely page 
-	// #(2*baseExtentSize + 2)
+	// The free space mapping should span all default pages, plus the pages
+	// added to accomodate both segments
 	uint64_t freePageNo = 2*sm->params.baseExtentSize + 2;
 	ASSERT_EQ(fsi->forwardMap.size(), 1);
 	ASSERT_EQ(fsi->reverseMap.size(), 1);
 	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
-	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
-	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
-	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
+	ASSERT_NE(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize),
+	                               fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, 
+		                           BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize);
+	ASSERT_EQ(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize)->second,freePageNo);
 	
 	
 	// Drop segA ---------------------------------------------------------------
@@ -387,18 +393,23 @@ TEST(SegmentManagerTest, createGrowDropSegment)
 	// Check FSI
 	ASSERT_EQ(fsi->numEntries, 2);
 	
-	// The free space mapping should span #baseExtentSize + 1 pages, 
-	// namely pages [2, baseExtentSize+2), 
-	// [2*baseExtentSize+2, 2*baseExtentSize+2 +1) 
+	// The free space mapping should span all default pages, plus the pages
+	// added to accomodate both segments, although one of them has been
+	// deleted.
 	freePageNo = 2*sm->params.baseExtentSize + 2;
 	ASSERT_EQ(fsi->forwardMap.size(), 2);
 	ASSERT_EQ(fsi->reverseMap.size(), 2);
 
 	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
-	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
-	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
-	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
-	
+	ASSERT_NE(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize),
+	                               fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, 
+								   BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize);
+	ASSERT_EQ(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize)->second,freePageNo);
+
 	ASSERT_NE(fsi->forwardMap.find(2), fsi->forwardMap.end());
 	ASSERT_NE(fsi->reverseMap.find(sm->params.baseExtentSize+2), 
 	          fsi->reverseMap.end());
@@ -422,20 +433,27 @@ TEST(SegmentManagerTest, createGrowDropSegment)
 	// Check FSI
 	ASSERT_EQ(fsi->numEntries, 2);
 	
-	// The free space mapping should span #baseExtentSize + 1 pages, 
-	// namely pages [2, baseExtentSize+2), 
-	// [2+2*baseExtentSize+ceil(baseExtentSize^extentIncrease), 
-	//  2+2*baseExtentSize+ceil(baseExtentSize^extentIncrease) +1) 
-	freePageNo = 2+ 2*sm->params.baseExtentSize + 
-	            ceil(pow(sm->params.baseExtentSize, sm->params.extentIncrease));
+	// The free space mapping should span all default pages, plus the pages
+	// added to accomodate both original segments (one was deleted), plus
+	// the space required for an additional extent for the surviving segment
+	auto newExtentSize = ceil(pow(sm->params.baseExtentSize, 
+		                          sm->params.extentIncrease));
+	freePageNo = 2+ 2*sm->params.baseExtentSize + newExtentSize;
+	            
 	            
 	ASSERT_EQ(fsi->forwardMap.size(), 2);
 	ASSERT_EQ(fsi->reverseMap.size(), 2);
 
 	ASSERT_NE(fsi->forwardMap.find(freePageNo), fsi->forwardMap.end());
-	ASSERT_NE(fsi->reverseMap.find(freePageNo+1), fsi->reverseMap.end());
-	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, freePageNo+1);
-	ASSERT_EQ(fsi->reverseMap.find(freePageNo+1)->second, freePageNo);
+	ASSERT_NE(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize + newExtentSize),
+	                               fsi->reverseMap.end());
+	ASSERT_EQ(fsi->forwardMap.find(freePageNo)->second, 
+								   BM_CONS::defaultNumPages + 
+		                           SMConst::baseExtentSize + newExtentSize);
+	ASSERT_EQ(fsi->reverseMap.find(BM_CONS::defaultNumPages +
+		                           SMConst::baseExtentSize + 
+		                           newExtentSize)->second,freePageNo);
 	
 	ASSERT_NE(fsi->forwardMap.find(2), fsi->forwardMap.end());
 	ASSERT_NE(fsi->reverseMap.find(sm->params.baseExtentSize+2), 

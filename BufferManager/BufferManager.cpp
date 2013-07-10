@@ -81,8 +81,9 @@ int BufferManager::initializeDatabase(const char* filename)
 
 		uint64_t fileBytes = ftell(dbFile);
 
-		if (fileBytes % BM_CONS::pageSize != 0 ||
-		    fileBytes < numPages * BM_CONS::pageSize)
+		//if (fileBytes % BM_CONS::pageSize != 0 ||
+		    //fileBytes < numPages * BM_CONS::pageSize)
+		if (fileBytes % BM_CONS::pageSize != 0)
 		{			
 			cout << "Database file is not formatted correctly" << endl;
 			exit(1);
