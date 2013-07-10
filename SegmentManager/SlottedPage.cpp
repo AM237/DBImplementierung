@@ -88,7 +88,12 @@ void SlottedPage::compactify()
 shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in) 
 { 
 	cout << "entered slotted page insert " << endl;
+	cout << "lsn: " << header.lsn << endl;
+	cout << "slot count: " << header.slotCount << endl;
+	cout << "firstFreeSlot: " << header.firstFreeSlot << endl;
+	cout << "dataStart: " << header.dataStart << endl;
 	cout << "free space: " << header.freeSpace << endl;
+
 	auto dataSize = BM_CONS::pageSize - sizeof(SlottedPageHeader);
 	auto slotSize = sizeof(SlottedPageSlot);
 	auto rLength = r.getLen();
@@ -107,10 +112,9 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 		SlottedPageSlot s = { header.dataStart, rLength };
 
 		// Write info
-		auto it = (unsigned char*)memcpy(data, &s, slotSize);
+		memcpy(data, &s, slotSize);
 		//reinterpret_cast<SlottedPageSlot*>(data)[0] = s;
-		it += header.dataStart;
-		memcpy(it, r.getData(), rLength);
+		memcpy(data+header.dataStart, r.getData(), rLength);
 		auto returnPair = shared_ptr<pair<uint8_t, uint32_t>>
 			 (new pair<uint8_t, uint32_t>(0, header.freeSpace));
 		return returnPair;	
@@ -123,6 +127,7 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 	else
 	{
 		cout << "sp page initialized" << endl;
+
 		// Case 1: first free slot is an index to an existing slot
 		auto firstFreeSlot = header.firstFreeSlot;
 		if (firstFreeSlot < header.slotCount)
@@ -172,7 +177,7 @@ shared_ptr<pair<uint8_t, uint32_t>> SlottedPage::insert(const Record& r,bool in)
 			header.slotCount++;
 			header.dataStart = header.dataStart-rLength;
 			header.freeSpace = header.freeSpace-slotSize-rLength;
-			if (header.firstFreeSlot==header.slotCount-1) header.firstFreeSlot++;
+			if (header.firstFreeSlot==header.slotCount-1)header.firstFreeSlot++;
 
 			SlottedPageSlot s = { header.dataStart, rLength };
 
@@ -206,6 +211,10 @@ bool SlottedPage::remove(uint8_t slotId)
 // _____________________________________________________________________________
 shared_ptr<Record> SlottedPage::lookup(uint8_t slotId)
 {
+	//cout << "looking for slot " << (uint16_t)slotId << endl;
+	//cout << "slot count " << header.slotCount << endl;
+
+
 	 if (slotId >= header.slotCount) return nullptr;
 	 auto slot = reinterpret_cast<SlottedPageSlot*>(data)[slotId];
 	 if (slot.length == 0 && slot.offset == 0) return nullptr;

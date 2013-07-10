@@ -133,7 +133,7 @@ uint64_t SegmentManager::growSegment(uint64_t segId)
 	// size b^(k^(n))
 	float numExtents = toGrow->extents.size();
 	uint64_t newExtentSize = ceil(pow(params.baseExtentSize, 
-	                         	  pow(params.extentIncrease,numExtents)));
+	                              pow(params.extentIncrease,numExtents)));
 	
 	// Request an extent with required capacity   	
 	Extent e = spaceInv->getExtent(newExtentSize);

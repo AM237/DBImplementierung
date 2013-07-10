@@ -58,14 +58,16 @@ TID SPSegment::insert(const Record& r)
 	// page. If this is not possible, check if the page has enough space for
 	// the record and a new slot. If this is again not possible, then begin
 	// a new search, this time for r.getLen() + sizeof(slot) bytes.
+	cout << "sp size is " << this->getSize() << endl;
 
-	cout << "entered sp insert " << endl;
+
+	auto lastValid =  this->getSize() % 2 == 0 ? true : false;
 	auto slotSize = sizeof(SlottedPageSlot);
 	bool secondRun = false;
 	while (true)
 	{
-		auto insertPage = secondRun? fsi->getPage(r.getLen()+slotSize) : 
-			                         fsi->getPage(r.getLen());                         
+		auto insertPage = secondRun? fsi->getPage(r.getLen()+slotSize,lastValid) 
+									 : fsi->getPage(r.getLen(), lastValid);                         
 		bool pageEmpty = insertPage.second;
 		auto pageToUpdate = insertPage.first;
 
@@ -88,6 +90,7 @@ TID SPSegment::insert(const Record& r)
 		BufferFrame& bf = bm->fixPage(fixedPage, true);
 		SlottedPage* slottedPage = reinterpret_cast<SlottedPage*>(bf.getData());
 		auto insertResult = slottedPage->insert(r, !pageEmpty);
+
 		if (insertResult == nullptr)
 		{
 			if (secondRun) { SM_EXC::SPSegmentFullException e; throw e; }
@@ -155,8 +158,7 @@ void SPSegment::notifySegGrowth(Extent e)
 {
 	// Add entries to the FSI for as many pages as exist in the given extent,
 	// and materialize the changes.
-	cout << "seg size " << this->getSize() << endl;
-	bool useLast = this->getSize() % 2 == 0? false : true;
+	bool useLast = (this->getSize() - (e.end - e.start)) % 2 == 0? false : true;
 	fsi->grow(e, useLast);
 
 	// Materialize changes
@@ -170,6 +172,7 @@ void SPSegment::notifySegGrowth(Extent e)
 	sort(pages.begin(), pages.end());
 	uint64_t availableSpace = pages.size() * BM_CONS::pageSize;
 	uint64_t requiredSpace = fsi->getRuntimeSize();
+
 	
 	// Must look through the FSI for an empty page to add to the FSI's extents
 	while (requiredSpace > availableSpace)
@@ -185,6 +188,7 @@ void SPSegment::notifySegGrowth(Extent e)
 		availableSpace = pages.size() * BM_CONS::pageSize;
 		requiredSpace = fsi->getRuntimeSize();
 	}
+
 
 	// Extents now have enough space to hold the serialized FSI,
 	// pages vector is sorted.

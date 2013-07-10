@@ -56,38 +56,35 @@ void SegmentFSI::update(uint64_t page, uint32_t value)
 	{
 		auto lastValue = inv[page/2].page1;
 		inv[page/2].page1 = discretizedValue;
-		cout << "updated inv[" << page/2 << "].page1 from " << lastValue << " to " << discretizedValue << endl;
+		cout << "updated inv[" << page/2 << "].page1 from " << lastValue << 
+		" to " << discretizedValue << endl;
 	} 
 	else
 	{
 		auto lastValue = inv[page/2].page2;
 		inv[page/2].page2 = discretizedValue;
-		cout << "updated inv[" << page/2 << "].page1 from " << lastValue << " to " << discretizedValue << endl;
+		cout << "updated inv[" << page/2 << "].page2 from " << lastValue << 
+		" to " << discretizedValue << endl;
 	}
 }
 
 
 // _____________________________________________________________________________
-pair<uint64_t, bool> SegmentFSI::getPage(unsigned requiredSize)
+pair<uint64_t, bool> SegmentFSI::getPage(unsigned requiredSize, bool lastValid)
 {
 	// Get the index in the discretized free space
 	// mapping, so that its mapped value (guaranteed free space) is the smallest
 	// mapped value that is still greater than or equal to the required space.
 	// Prefers fuller pages, and non empty pages to empty pages.
-
-	cout << "entered get page" << endl;
-
 	bool empty = false;
 	int spaceIndex = -1;
 	for (size_t i = 0; i < freeBytes.size(); i++)
 		if (freeBytes[i] >= (int)requiredSize) { spaceIndex = i; break; }
 
-	cout << "spaceIndex is " << spaceIndex << ", required size: " << requiredSize << endl;
-
 	// If requiredSize is larger than any empty space -> throw exception
 	if (spaceIndex == -1) { SM_EXC::InputLengthException e; throw e; }
 
-	// Find a page with the closest fullness degree to the above value.
+	// Find a valid page with the closest fullness degree to the above value.
 	uint64_t page = 0;
 	while (true)
 	{
@@ -99,7 +96,7 @@ pair<uint64_t, bool> SegmentFSI::getPage(unsigned requiredSize)
 				if (spaceIndex == (int)freeBytes.size()-1) empty = true;
 				goto afterloop;
 			}
-			if (inv[i].page2 == spaceIndex) 
+			if (lastValid && inv[i].page2 == spaceIndex) 
 			{ 
 				page = 2*i+1;
 				if (spaceIndex == (int)freeBytes.size()-1) empty = true; 
@@ -130,7 +127,6 @@ void SegmentFSI::grow(Extent e, bool useLast)
 	unsigned int size = freeBytes.size()-1;
 	if (useLast)
 	{
-		cout << "resetting page no. " << 2*(inv.size()-1) +1 << endl;
 		inv.back().page2 = size;
 		newEntryStart++;
 	}
@@ -140,31 +136,29 @@ void SegmentFSI::grow(Extent e, bool useLast)
 		FreeSpaceEntry f = { size, size };
 		inv.push_back(f);
 	}
-
-	cout << "fsi size " << 2*inv.size() << endl;
 }
 
 // _____________________________________________________________________________
 void SegmentFSI::absorbPage(bool surplus)
 {
 	uint64_t newFSIPageIndex = 0;
+	auto freeMarker = freeBytes.size()-1;
 	for (size_t i = 0; i < inv.size(); i++)
 	{
 		// First page of entry, must not be the first page of the segment.
-		if (i != 0 && inv[i].page1 == freeBytes.size())
+		if (i != 0 && inv[i].page1 == freeMarker)
 		{
 			newFSIPageIndex = 2*i;
-			inv[i].page1 = freeBytes.size();
+			inv[i].page1 = 15;
 			break;
 		}
 		// Second page of entry, if last entry in inventory, only valid
 		// if the segment has an even number of pages. Otherwise
 		// the last entry of the inventory has a surplus page marker.
-		else if (!(i == inv.size()-1 && !surplus) && 
-			       inv[i].page2 == freeBytes.size())
+		else if ((i != inv.size()-1 || !surplus) && inv[i].page2 == freeMarker)
 		{
 			newFSIPageIndex = 2*i + 1;
-			inv[i].page2 = freeBytes.size();
+			inv[i].page2 = 15;
 			break;
 		}
 	}
@@ -177,10 +171,18 @@ void SegmentFSI::absorbPage(bool surplus)
 	// create new extent
 	for (Extent& e : this->extents)
 	{
-		if (e.start == newFSIPageIndex+1) e.start = newFSIPageIndex;
-		else if (e.end == newFSIPageIndex) e.end = newFSIPageIndex+1;
-		pageAbsorbed = true;
-		break;
+		if (e.start == newFSIPageIndex+1) 
+		{
+			e.start = newFSIPageIndex;
+			pageAbsorbed = true;
+			break;
+		}
+		else if (e.end == newFSIPageIndex) 
+		{
+			e.end = newFSIPageIndex+1;
+			pageAbsorbed = true;
+			break;
+		}
 	}
 	if (!pageAbsorbed)
 	{

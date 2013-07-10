@@ -51,7 +51,7 @@ struct FreeSpaceEntry {
 // 10 -> 3072
 // 11 -> 4096
 //
-// A value of 16 for a page entry in a FreeSpaceEntry marks the given page
+// A value of 15 for a page entry in a FreeSpaceEntry marks the given page
 // as being used by the SegmentFSI
 class SegmentFSI
 {
@@ -71,7 +71,7 @@ public:
 
 	// De-serializes this SegmentFSI object, re-writes data structures.
 	// Assumes bytes contains the FSI header, that is, 
-	// | FSI size | Extents size | Inventory Size | Extents |
+	// | FSI size | Extents size | Inventory Size | Extents | Inventory
 	// After extracting the FSI's extents, looks up all pages on which FSI
 	// is found and then deserializes the FSI completely.
 	void deserialize(unsigned char* bytes);
@@ -90,7 +90,7 @@ public:
 	// SM_EXC::SegmentFullException when this is true for no page, i.e.
 	// the segment must be grown. Second value in pair is true iff the returned
 	// page is empty.
-	std::pair<uint64_t, bool> getPage(unsigned requiredSize);
+	std::pair<uint64_t, bool> getPage(unsigned requiredSize, bool lastValid);
 
 	// Adds #numPages page makers to the inventory. Starts with last entry
 	// in current inventory iff useLast == true
@@ -100,6 +100,8 @@ public:
 	// this page as part of the FSI. #surplus dictates whether the FSI currently
 	// holds an extra page marker or not (see FreeSpaceEntry)
 	void absorbPage(bool surplus);
+
+
 
 private:
 
@@ -118,6 +120,8 @@ private:
 	// The set of pages over which this SegmentFSI is spread. Assumed to fit
 	// on the first page at all times.
 	std::vector<Extent> extents;
+
+
 };
 
 #endif  // SEGMENTFSI_H

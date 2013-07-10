@@ -13,10 +13,6 @@
 
 using namespace std;
 
-// todo: adapt to your implementation
-//uint64_t extractPage(TID tid) {
-//   return tid >> 16;
-//}
 uint64_t extractPage(TID tid) {
    return tid.pageId;
 }
@@ -70,7 +66,7 @@ int main(int argc, char** argv) {
    cout << "finished setting up" << endl;
 
    // Insert some records
-   for (unsigned i=0; i<maxInserts; ++i) {
+   for (unsigned i=0; i<5000; ++i) {
       
       // Select string/record to insert
       uint64_t r = rnd.next()%testData.size();
@@ -98,30 +94,34 @@ int main(int argc, char** argv) {
          sm.growSegment(spId);
          tid = sp->insert(Record(s.size(), s.c_str()));
       }
-      
+
+      /*
       cout << "main: tid representation " << tid.intRepresentation << endl;
       cout << "main: page id: " << tid.pageId << endl;
       cout << "main: slot id: " << (uint16_t)tid.slotId << endl;
+      */
 
 
       // TIDs should not be overwritten
       assert(values.find(tid.intRepresentation)==values.end()); 
       values[tid.intRepresentation]=r;
+
       // extract the pageId from the TID
       unsigned pageId = extractPage(tid); 
+
       // pageId should be within [0, initialSize)
-      // constraint is implementation dependent
+      //
+      // constraint is implementation dependent??
+      // if pageId is contrainted as above, then max initialSize * pageSize
+      // bytes available for storage. pagesize = 4096 => ~410000 storage
+      // capacity, but 1000000 inserts??
       // assert(pageId < initialSize); 
       usage[pageId]+=s.size();
-      cout << "insert no. " << i << " success " << endl;
-      cout << endl;
    }
 
-   cout << "finished inserting records" << endl;
-   exit(1);
 
    // Lookup & delete some records
-   for (unsigned i=0; i<maxDeletes; ++i) {
+   for (unsigned i=0; i<10000; ++i) {
       // Select operation
       bool del = rnd.next()%10 == 0;
 
@@ -146,8 +146,9 @@ int main(int argc, char** argv) {
 
    cout << "finished look up and delete" << endl;
 
+
    // Update some values ('usage' counter invalid from here on)
-   for (unsigned i=0; i<maxUpdates; ++i) {
+   for (unsigned i=0; i<10000; ++i) {
       // Select victim
       TID tid;
       tid.intRepresentation = values.begin()->first;
@@ -157,7 +158,6 @@ int main(int argc, char** argv) {
       const string s = testData[r];
 
       // Replace old with new value
-      //sp.update(tid, Record(s.size(), s.c_str()));
       sp->update(tid, Record(s.size(), s.c_str()));
       values[tid.intRepresentation]=r;
    }
@@ -170,10 +170,12 @@ int main(int argc, char** argv) {
       tid.intRepresentation = p.first;
       const std::string& value = testData[p.second];
       unsigned len = value.size();
+
       shared_ptr<Record> rec = sp->lookup(tid);
       assert(rec->getLen() == len);
       assert(memcmp(rec->getData(), value.c_str(), len)==0);
    }
 
+   cout << "finished lookups" << endl;
    return 0;
 }
