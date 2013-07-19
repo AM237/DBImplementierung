@@ -1,0 +1,27 @@
+The metadata segment stores a map of relations to segment ids, which can be 
+retrieved / manipulated by the segment manager. In addition, it also stores, 
+for each relation, which segments hold which index (of a given type). This 
+way, the segment manager is used exclusively for the retrieval and 
+manipulation of abstract segments; the knowledge, what the actual segment type 
+is, is stored with this metadata layer (for instance via dynamic cast from the 
+segment parent type after retrieving a segment via the segment manager 
+interface).
+
+For the operators implementation, a mapping of relation to attribute meta
+data is required. Given a 'create table ...' statement, the given parser
+outputs a schema object, from which the the attribute metadata (name, offset, 
+length, type) needed for individual attribute operations on a given byte array
+(record data) may be derived.
+
+With this attribute meta data in hand, individual Registers are defined as
+objects that hold tuples (usually only at a time), that act as I/O buffers
+between operators. Define a Register per attribute type (Integer / String),
+either as separate classes or as a parameterized class. A register object
+of the appropriate type is instantiated per attribute in the schema.
+
+Each operator is defined according to the given model (iterator, with open, 
+close, next methods). On the lowest level, the open method finds the segment
+/ index pertaining to the relation. The next method retrieves the next tuple
+as according to the operator logic (i.e. table scan -> next tuple on next
+page of the segment), signaling the next operator in the hierarchy that a new 
+tuple may be consumed. The getOutput method on the other hand directly returns a vector of pointers to the Registers that hold the next value for each attribute.
