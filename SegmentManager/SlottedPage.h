@@ -35,6 +35,15 @@ struct SlottedPageSlot
 	unsigned int length: 16;
 };
 
+// Priority queue comparison ---------------------------------------------------
+class pqcomp
+{
+public:
+  bool operator() (const std::pair<uint16_t, uint16_t>& lhs, 
+  	               const std::pair<uint16_t, uint16_t>& rhs) const
+  { return (lhs.first<rhs.first); }
+};
+
 
 // A slotted page --------------------------------------------------------------
 class SlottedPage

@@ -13,11 +13,9 @@
 
 using namespace std;
 
-uint64_t extractPage(TID tid) {
-   return tid.pageId;
-}
+uint64_t extractPage(TID tid) { return tid.pageId; }
 
-const unsigned initialSize = 100; // in (slotted) pages
+const unsigned initialSize = 29; // in (slotted) pages
 const unsigned totalSize = initialSize+50; // in (slotted) pages
 const unsigned maxInserts = 1000ul*1000ul / 10; // take 1/10 to make test quicker
 const unsigned maxDeletes = 10ul*1000ul / 10; // take 1/10 to make test quicker
@@ -57,16 +55,16 @@ int main(int argc, char** argv) {
    unordered_map<unsigned, unsigned> usage; 
 
    // Setting everything up
+   cout << "Setting up database ... " << flush;
    SegmentManager sm("testDB");
    auto spId = sm.createSegment(segTypes::SP_SGM, true);
    SPSegment* sp = dynamic_cast<SPSegment*>(sm.retrieveSegmentById(spId));
+   cout << "done." << endl;
 
    Random64 rnd;
 
-   //cout << "finished setting up" << endl;
-
    // Insert some records ------------------------------------------------------
-   cout << "Inserting records ... " << endl;
+   cout << "Inserting records ... " << flush;
    for (unsigned i=0; i<maxInserts; ++i) {
       
       // Select string/record to insert
@@ -104,16 +102,16 @@ int main(int argc, char** argv) {
       //
       // constraint is implementation dependent??
       // if pageId is contrainted as above, then max initialSize * pageSize
-      // bytes available for storage. pagesize = 4096 => ~410000 storage
-      // capacity, but 1000000 inserts??
+      // bytes available for storage. pagesize = 4096, initialSize = 100
+      // => ~410000 storage capacity, but 1000000 inserts??
       // assert(pageId < initialSize); 
       usage[pageId]+=s.size();
    }
-   cout << "Finished inserting records. " << endl;
+   cout << "done." << endl;
 
 
    // Lookups ------------------------------------------------------------------
-   cout << "Looking up records ... " << endl;
+   cout << "Looking up records ... " << flush;
    for (auto p : values) {
       TID tid;
       tid.intRepresentation = p.first;
@@ -124,11 +122,11 @@ int main(int argc, char** argv) {
       assert(rec->getLen() == len);
       assert(memcmp(rec->getData(), value.c_str(), len)==0);
    }
-   cout << "Finished lookups" << endl;
+   cout << "done." << endl;
 
-/*
+
    // Lookup & delete some records ---------------------------------------------
-   cout << "Looking up and deleting some records ... " << endl;
+   cout << "Looking up and deleting some records ... " << flush;
    for (unsigned i=0; i<maxDeletes; ++i) {
       // Select operation
       bool del = rnd.next()%10 == 0;
@@ -151,12 +149,13 @@ int main(int argc, char** argv) {
          usage[pageId]-=len;
       }
    }
-   cout << "Finished look up and delete" << endl;
+   cout << "done." << endl;
 
 
    // Update some values ('usage' counter invalid from here on) ----------------
-   cout << "Updating records ... " << endl;
+   cout << "Updating records ... " << flush;
    for (unsigned i=0; i<maxUpdates; ++i) {
+
       // Select victim
       TID tid;
       tid.intRepresentation = values.begin()->first;
@@ -165,15 +164,16 @@ int main(int argc, char** argv) {
       uint64_t r = rnd.next()%testData.size();
       const string s = testData[r];
 
-      // Replace old with new value
-      sp->update(tid, Record(s.size(), s.c_str()));
-      values[tid.intRepresentation]=r;
+      // Replace old with new value if successful (current implementation
+      // does not support indirection to another page)
+      if (sp->update(tid, Record(s.size(), s.c_str())))
+         values[tid.intRepresentation]=r;
    }
-   cout << "Finished update" << endl;
-*/
-   
+   cout << "done." << endl;
+
+
    // Lookups ------------------------------------------------------------------
-   cout << "Looking up records ... " << endl;
+   cout << "Looking up records ... " << flush;
    for (auto p : values) {
       TID tid;
       tid.intRepresentation = p.first;
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
       assert(rec->getLen() == len);
       assert(memcmp(rec->getData(), value.c_str(), len)==0);
    }
-   cout << "Finished lookups" << endl;
+   cout << "done." << endl;
 
    return 0;
 }

@@ -58,9 +58,6 @@ TID SPSegment::insert(const Record& r)
 	// page. If this is not possible, check if the page has enough space for
 	// the record and a new slot. If this is again not possible, then begin
 	// a new search, this time for r.getLen() + sizeof(slot) bytes.
-	
-	//cout << "sp size is " << this->getSize() << endl;
-	
 	auto lastValid =  this->getSize() % 2 == 0 ? true : false;
 	auto slotSize = sizeof(SlottedPageSlot);
 	bool secondRun = false;

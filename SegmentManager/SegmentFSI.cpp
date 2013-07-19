@@ -48,24 +48,10 @@ uint64_t SegmentFSI::getRuntimeSize()
 // _____________________________________________________________________________
 void SegmentFSI::update(uint64_t page, uint32_t value)
 {
-	//cout << "call update with " << page << ", " << value << endl;
-
 	auto it = upper_bound(freeBytes.begin(), freeBytes.end(), value);
 	unsigned int discretizedValue = it - freeBytes.begin() - 1;
-	if (page % 2 == 0)
-	{
-		//auto lastValue = inv[page/2].page1;
-		inv[page/2].page1 = discretizedValue;
-		//cout << "updated inv[" << page/2 << "].page1 from " << lastValue << 
-		//" to " << discretizedValue << endl;
-	} 
-	else
-	{
-		//auto lastValue = inv[page/2].page2;
-		inv[page/2].page2 = discretizedValue;
-		//cout << "updated inv[" << page/2 << "].page2 from " << lastValue << 
-		//" to " << discretizedValue << endl;
-	}
+	if (page % 2 == 0) inv[page/2].page1 = discretizedValue;
+	else inv[page/2].page2 = discretizedValue;
 }
 
 
@@ -110,10 +96,6 @@ pair<uint64_t, bool> SegmentFSI::getPage(unsigned requiredSize, bool lastValid)
 	}
 
 	afterloop:
-	//cout << "returning page " << page << ", which is ";
-	//if(empty) cout << "not initialized " << endl;
-	//else cout << "initialized " << endl;
-
 	if (page == 0) { SM_EXC::SPSegmentFullException e; throw e; }
 	return pair<uint64_t, bool>(page, empty);
 }

@@ -36,10 +36,10 @@ namespace SM_EXC
 struct SMConst
 {
 	// DB Size in pages
-	static const uint64_t dbSize = 10000;
+	static const uint64_t dbSize = 50000;
 
 	// Size of the buffer manager
-	static const uint64_t bufferSize = 20;
+	static const uint64_t bufferSize = 1000;
 	
 	// Required for dynamic extent mapping, this is the exponential factor
 	// by which the size of extents increases every time a segment is grown.

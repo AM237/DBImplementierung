@@ -43,7 +43,7 @@ namespace BM_CONS
 	
 	// The default number of pages to write to file when initializing
 	// the database
-	const int defaultNumPages = 50;
+	const int defaultNumPages = 100;
 }
 
 #endif  // BMCONST_H
